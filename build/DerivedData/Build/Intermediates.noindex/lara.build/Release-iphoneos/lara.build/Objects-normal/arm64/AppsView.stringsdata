@@ -1,0 +1,56 @@
+{
+  "source": "/Users/baconmania/lara-26support/lara/views/AppsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Sideloaded Apps",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 30
+        }
+      },
+      {
+        "comment": "",
+        "key": "Failed to Load",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "No sideloaded apps found.",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 12
+        }
+      },
+      {
+        "comment": "",
+        "key": "KFS not ready.",
+        "location": {
+          "startingColumn": 67,
+          "startingLine": 12
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reload",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 33
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 39
+        }
+      }
+    ]
+  },
+  "version": 1
+}

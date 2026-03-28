@@ -1,0 +1,51 @@
+{
+  "" : {
+    "const-values" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary.swiftconstvalues",
+    "dependencies" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary.d",
+    "diagnostics" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary.dia",
+    "emit-module-dependencies" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary-emit-module.dia",
+    "pch" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary.swiftdeps"
+  },
+  "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  },
+  "/Users/baconmania/lara-26support/lara/classes/Logger.swift" : {
+    "index-unit-output-path" : "/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/Logger.o",
+    "llvm-bc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/Logger.bc",
+    "object" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/Logger.o"
+  },
+  "/Users/baconmania/lara-26support/lara/kexploit/laramgr.swift" : {
+    "index-unit-output-path" : "/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/laramgr.o",
+    "llvm-bc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/laramgr.bc",
+    "object" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/laramgr.o"
+  },
+  "/Users/baconmania/lara-26support/lara/lara.swift" : {
+    "index-unit-output-path" : "/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara.o",
+    "llvm-bc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara.bc",
+    "object" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara.o"
+  },
+  "/Users/baconmania/lara-26support/lara/views/AppsView.swift" : {
+    "index-unit-output-path" : "/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/AppsView.o",
+    "llvm-bc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/AppsView.bc",
+    "object" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/AppsView.o"
+  },
+  "/Users/baconmania/lara-26support/lara/views/ContentView.swift" : {
+    "index-unit-output-path" : "/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/baconmania/lara-26support/lara/views/EditorView.swift" : {
+    "index-unit-output-path" : "/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/EditorView.o",
+    "llvm-bc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/EditorView.bc",
+    "object" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/EditorView.o"
+  },
+  "/Users/baconmania/lara-26support/lara/views/FontPicker.swift" : {
+    "index-unit-output-path" : "/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/FontPicker.o",
+    "llvm-bc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/FontPicker.bc",
+    "object" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/FontPicker.o"
+  }
+}

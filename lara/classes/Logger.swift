@@ -5,6 +5,8 @@
 //  teehee :3
 //  yeah yeah teehee all you want 
 //
+//  I love that you just straight skidded this from jessi lmfao
+//
 //  Created by roooot on 15.11.25.
 //
 
@@ -96,6 +98,11 @@ class Logger: ObservableObject {
             self.lastwasdivider = false
             self.pendingdivider = false
         }
+        if let url = logFileURL {
+            try? logFileHandle?.close()
+            try? "".write(to: url, atomically: true, encoding: .utf8)
+            logFileHandle = try? FileHandle(forWritingTo: url)
+        }
     }
 
     func capture() {
@@ -168,9 +175,27 @@ class Logger: ObservableObject {
             ])
         } else {
             try? FileManager.default.setAttributes([FileAttributeKey.protectionKey: FileProtectionType.none], ofItemAtPath: url.path)
+            if let existing = try? String(contentsOf: url, encoding: .utf8), !existing.isEmpty {
+                let lines = existing.components(separatedBy: "\n").filter {
+                    !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                }
+                if !lines.isEmpty {
+                    self.logs = lines
+                    self.lastwasdivider = true
+                }
+            }
         }
         logFileHandle = try? FileHandle(forWritingTo: url)
         try? logFileHandle?.seekToEnd()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let separator = "--- session started: \(formatter.string(from: Date())) ---"
+        self.logs.append(separator)
+        self.lastwasdivider = true
+        if let data = (separator + "\n").data(using: .utf8) {
+            try? logFileHandle?.write(contentsOf: data)
+            try? logFileHandle?.synchronize()
+        }
     }
 
     private func appendToFile(_ lines: [String]) {

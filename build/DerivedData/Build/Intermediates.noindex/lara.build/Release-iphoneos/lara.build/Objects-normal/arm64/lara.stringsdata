@@ -1,0 +1,24 @@
+{
+  "source": "/Users/baconmania/lara-26support/lara/lara.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "lara",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 21
+        }
+      },
+      {
+        "comment": "",
+        "key": "Logs",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 26
+        }
+      }
+    ]
+  },
+  "version": 1
+}

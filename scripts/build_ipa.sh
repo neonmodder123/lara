@@ -141,6 +141,9 @@ fi
 
 rm -rf "$DEST_APP/_CodeSignature" "$DEST_APP/embedded.mobileprovision" || true
 
+# Ensure UIFileSharingEnabled is present (Xcode 26 build system drops this INFOPLIST_KEY_ setting)
+plutil -replace UIFileSharingEnabled -bool YES "$DEST_APP/Info.plist"
+
 if [[ "$LARA_LDID_SIGN" == "1" ]]; then
   if ! command -v ldid >/dev/null 2>&1; then
     echo "ERROR: LARA_LDID_SIGN=1 but 'ldid' is not installed. Try: brew install ldid" >&2

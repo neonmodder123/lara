@@ -1,0 +1,16 @@
+{
+  "source": "/Users/baconmania/lara-26support/lara/classes/Logger.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Logs",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 229
+        }
+      }
+    ]
+  },
+  "version": 1
+}

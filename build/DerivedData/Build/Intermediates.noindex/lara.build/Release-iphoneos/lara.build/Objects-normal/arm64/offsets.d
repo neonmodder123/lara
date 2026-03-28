@@ -1,0 +1,22 @@
+dependencies: \
+  /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/include/Darwin.modulemap \
+  /Users/baconmania/lara-26support/lara/kexploit/offsets.m \
+  /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/Foundation.framework/Modules/module.modulemap \
+  /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include/module.modulemap \
+  /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/include/DarwinFoundation2.modulemap \
+  /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/include/DarwinFoundation3.modulemap \
+  /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/include/xpc.modulemap \
+  /Users/baconmania/lara-26support/lara/headers/xpf.h \
+  /Users/baconmania/lara-26support/lara/choma/Fat.h \
+  /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/include/DarwinBasic.modulemap \
+  /Users/baconmania/lara-26support/lara/choma/MemoryStream.h \
+  /Users/baconmania/lara-26support/lara/choma/Util.h \
+  /Users/baconmania/lara-26support/lara/choma/PatchFinder.h \
+  /Users/baconmania/lara-26support/lara/choma/MachO.h \
+  /Users/baconmania/lara-26support/lara/choma/DyldSharedCache.h \
+  /Users/baconmania/lara-26support/lara/choma/dyld_cache_format.h \
+  /Users/baconmania/lara-26support/lara/choma/fixup-chains.h \
+  /Users/baconmania/lara-26support/lara/choma/CachePatching.h \
+  /Users/baconmania/lara-26support/lara/choma/PatchFinder_arm64.h \
+  /Users/baconmania/lara-26support/lara/choma/arm64.h \
+  /Users/baconmania/lara-26support/lara/headers/libgrabkernel2.h

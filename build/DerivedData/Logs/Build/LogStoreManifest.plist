@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>12</integer>
+	<key>logs</key>
+	<dict>
+		<key>D2D5DA5C-A210-47E4-9A59-6847C3061A38</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>D2D5DA5C-A210-47E4-9A59-6847C3061A38.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>W</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>8</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>lara project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>lara</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building project lara with scheme lara and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>796407651.67505598</real>
+			<key>timeStoppedRecording</key>
+			<real>796407664.68123806</real>
+			<key>title</key>
+			<string>Building project lara with scheme lara and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>D2D5DA5C-A210-47E4-9A59-6847C3061A38</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

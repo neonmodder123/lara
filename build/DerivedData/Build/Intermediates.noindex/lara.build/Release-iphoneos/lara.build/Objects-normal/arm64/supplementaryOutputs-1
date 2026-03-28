@@ -1,0 +1,12 @@
+{
+  "/Users/baconmania/lara-26support/lara/classes/Logger.swift" : {
+    "abi-baseline-json" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara.abi.json",
+    "const-values" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary.swiftconstvalues",
+    "dependencies" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary.d",
+    "diagnostics" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-primary.dia",
+    "objc-header" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara-Swift.h",
+    "swiftdoc" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara.swiftdoc",
+    "swiftmodule" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara.swiftmodule",
+    "swiftsourceinfo" : "/Users/baconmania/lara-26support/build/DerivedData/Build/Intermediates.noindex/lara.build/Release-iphoneos/lara.build/Objects-normal/arm64/lara.swiftsourceinfo"
+  }
+}
