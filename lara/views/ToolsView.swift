@@ -8,17 +8,25 @@
 import SwiftUI
 
 struct ToolsView: View {
-    @State private var isaslr: Bool = { getaslrstate(); return aslrstate }()
+    @State private var isaslr: Bool = aslrstate
     
     var body: some View {
         List {
             Section {
                 HStack {
                     Text("ASLR:")
+                    
                     Spacer()
+                    
                     Text(isaslr ? "enabled" : "disabled")
                         .foregroundColor(isaslr ? Color.red : Color.green)
                         .monospaced()
+                    
+                    Button {
+                        isaslr = aslrstate
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
                 }
                 
                 Button {
