@@ -129,9 +129,9 @@ struct WhitelistView: View {
         }
 
         if failures.isEmpty {
-            status = "patched all files"
+            status = "Patched all files!"
         } else {
-            status = "failed to patch: \(failures.joined(separator: ", "))"
+            status = "Failed to patch: \(failures.joined(separator: ", "))"
         }
 
         loadall()
@@ -153,7 +153,7 @@ struct WhitelistView: View {
     private func sbxwrite(path: String, data: Data) -> String {
         let fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0o644)
         if fd == -1 {
-            return "open failed: errno=\(errno) \(String(cString: strerror(errno)))"
+            return vfsfallback(path: path, data: data, reason: "open failed: errno=\(errno) \(String(cString: strerror(errno)))")
         }
         defer { close(fd) }
 
@@ -162,10 +162,18 @@ struct WhitelistView: View {
         }
 
         if result == -1 {
-            return "write failed: errno=\(errno) \(String(cString: strerror(errno)))"
+            return vfsfallback(path: path, data: data, reason: "write failed: errno=\(errno) \(String(cString: strerror(errno)))")
         }
 
         return "ok (\(result) bytes)"
+    }
+
+    private func vfsfallback(path: String, data: Data, reason: String) -> String {
+        guard mgr.vfsready else {
+            return reason + " | vfs not ready"
+        }
+        let ok = mgr.vfsoverwritewithdata(target: path, data: data)
+        return ok ? "ok (vfs overwrite)" : reason + " | vfs overwrite failed"
     }
 
     private func render(data: Data) -> String {

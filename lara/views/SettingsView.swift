@@ -15,7 +15,7 @@ struct SettingsView: View {
     @AppStorage("loggernobullshit") private var loggernobullshit: Bool = true
     @AppStorage("keepalive") private var iskeepalive: Bool = true
     @AppStorage("showfmintabs") private var showfmintabs: Bool = true
-    @AppStorage("selectedmethod") private var selectedmethod: method = .sbx
+    @AppStorage("selectedmethod") private var selectedmethod: method = .hybrid
     
     var appname: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
@@ -71,9 +71,11 @@ struct SettingsView: View {
                     Text("Method")
                 } footer: {
                     if selectedmethod == .vfs {
-                        Text("Dont use this. It sucks.")
+                        Text("VFS only.")
+                    } else if selectedmethod == .sbx {
+                        Text("SBX only.")
                     } else {
-                        Text("This is the better method. Use this")
+                        Text("Hybrid: SBX for read/list, VFS for overwrite/edit.")
                     }
                 }
                 
@@ -93,6 +95,7 @@ struct SettingsView: View {
                         }
                     
                     Toggle("Show File Manager in Tabs", isOn: $showfmintabs)
+
                 } header: {
                     Text("Lara Settings")
                 } footer: {
@@ -235,4 +238,5 @@ struct SettingsView: View {
 enum method: String, CaseIterable {
     case vfs = "VFS"
     case sbx = "SBX"
+    case hybrid = "Hybrid"
 }

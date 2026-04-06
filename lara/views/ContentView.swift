@@ -144,9 +144,13 @@ struct ContentView: View {
                                 NavigationLink("Font Overwrite") {
                                     FontPicker(mgr: mgr)
                                 }
+
+                                NavigationLink("Card Overwrite") {
+                                    CardView()
+                                }
                                 
                                 NavigationLink("Custom Overwrite") {
-                                    CustomOverwriteView(mgr: mgr)
+                                    CustomView(mgr: mgr)
                                 }
                                 
                                 NavigationLink("DirtyZero (Broken)") {
@@ -159,7 +163,7 @@ struct ContentView: View {
                                     }
                                 }
                             }
-                        } else {
+                        } else if selectedmethod == .sbx {
                             Button {
                                 mgr.sbxescape()
                                 // mgr.sbxelevate()
@@ -199,6 +203,10 @@ struct ContentView: View {
                                         SantanderView(startPath: "/")
                                     }
                                 }
+
+                                NavigationLink("Card Overwrite") {
+                                    CardView()
+                                }
                                 
                                 NavigationLink("3 App Bypass (Broken?)") {
                                     AppsView(mgr: mgr)
@@ -218,12 +226,122 @@ struct ContentView: View {
                                     }
                                 }
                             }
+                        } else {
+                            if !mgr.sbxattempted {
+                                Button {
+                                    mgr.sbxescape()
+                                } label: {
+                                    if mgr.sbxrunning {
+                                        HStack {
+                                            ProgressView()
+                                                .progressViewStyle(.circular)
+                                                .frame(width: 18, height: 18)
+                                            Text("Escaping Sandbox...")
+                                        }
+                                    } else if !mgr.sbxready {
+                                        if mgr.sbxattempted && mgr.sbxfailed {
+                                            HStack {
+                                                Text("Sandbox Escape Failed")
+                                                Spacer()
+                                                Image(systemName: "xmark.circle")
+                                                    .foregroundColor(.red)
+                                            }
+                                        } else {
+                                            Text("Escape Sandbox")
+                                        }
+                                    } else {
+                                        HStack {
+                                            Text("Sandbox Escaped")
+                                            Spacer()
+                                            Image(systemName: "checkmark.circle")
+                                                .foregroundColor(.green)
+                                        }
+                                    }
+                                }
+                                .disabled(!mgr.dsready || mgr.sbxready || mgr.sbxrunning)
+                            } else {
+                                Button {
+                                    mgr.vfsinit()
+                                } label: {
+                                    if mgr.vfsrunning {
+                                        HStack {
+                                            ProgressView(value: mgr.vfsprogress)
+                                                .progressViewStyle(.circular)
+                                                .frame(width: 18, height: 18)
+                                            Text("Initialising VFS...")
+                                            Spacer()
+                                            Text("\(Int(mgr.vfsprogress * 100))%")
+                                        }
+                                    } else if !mgr.vfsready {
+                                        if mgr.vfsattempted && mgr.vfsfailed {
+                                            HStack {
+                                                Text("VFS Init Failed")
+                                                Spacer()
+                                                Image(systemName: "xmark.circle")
+                                                    .foregroundColor(.red)
+                                            }
+                                        } else {
+                                            Text("Initialise VFS")
+                                        }
+                                    } else {
+                                        HStack {
+                                            Text("Initialised Hybrid")
+                                            Spacer()
+                                            Image(systemName: "checkmark.circle")
+                                                .foregroundColor(.green)
+                                        }
+                                    }
+                                }
+                                .disabled(!mgr.dsready || mgr.vfsready || mgr.vfsrunning)
+                            }
+                            
+                            if mgr.vfsready && mgr.sbxready {
+                                if !showfmintabs {
+                                    NavigationLink("File Manager") {
+                                        SantanderView(startPath: "/")
+                                    }
+                                }
+                                
+                                NavigationLink("Font Overwrite") {
+                                    FontPicker(mgr: mgr)
+                                }
+
+                                NavigationLink("Card Overwrite") {
+                                    CardView()
+                                }
+                                
+                                NavigationLink("Custom Overwrite") {
+                                    CustomView(mgr: mgr)
+                                }
+                                
+                                NavigationLink("Whitelist") {
+                                    WhitelistView()
+                                }
+                                
+                                NavigationLink("DirtyZero") {
+                                    ZeroView(mgr: mgr)
+                                }
+                                
+                                if 1 == 2 {
+                                    NavigationLink("MobileGestalt") {
+                                        EditorView()
+                                    }
+                                    
+                                    NavigationLink("Passcode Theme") {
+                                        PasscodeView(mgr: mgr)
+                                    }
+                                    
+                                    NavigationLink("3 App Bypass (Broken?)") {
+                                        AppsView(mgr: mgr)
+                                    }
+                                }
+                            }
                         }
                     } header: {
-                        Text(selectedmethod == .vfs ? "Virtual File System" : "Sandbox Escape")
+                        Text(selectedmethod == .vfs ? "Virtual File System" : (selectedmethod == .sbx ? "Sandbox Escape" : "Hybrid (SBX + VFS)"))
                     } footer: {
                         if selectedmethod == .sbx {
-                            Text("Font Overwrite is only available in VFS mode. (Settings -> Method -> VFS)")
+                            Text("Font Overwrite is only available in VFS or Hybrid mode. (Settings -> Method -> VFS/Hybrid)")
                         }
                     }
                     

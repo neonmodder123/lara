@@ -9,6 +9,7 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 import AVKit
+import AVFoundation
 import QuickLook
 
 struct SantanderView: View {
@@ -21,10 +22,12 @@ struct SantanderView: View {
     }
 
     var body: some View {
+        let readUsesSBX = (selectedmethod != .vfs)
+        let writeUsesVFS = (selectedmethod != .sbx)
         let ready = (selectedmethod == .vfs) ? mgr.vfsready : mgr.sbxready
         Group {
             if ready {
-                SantanderBrowserSheet(startPath: startPath)
+                SantanderBrowserSheet(startPath: startPath, readUsesSBX: readUsesSBX, writeUsesVFS: writeUsesVFS)
                     .ignoresSafeArea()
             } else {
                 VStack(spacing: 12) {
@@ -41,35 +44,78 @@ struct SantanderView: View {
         }
         .onAppear {
             refreshSelectedMethod()
+            startIfNeeded()
         }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             refreshSelectedMethod()
+            startIfNeeded()
         }
     }
+}
 
-    private func refreshSelectedMethod() {
+private extension SantanderView {
+    func refreshSelectedMethod() {
         if let raw = UserDefaults.standard.string(forKey: "selectedmethod"),
            let m = method(rawValue: raw) {
             selectedmethod = m
+        }
+    }
+
+    func startIfNeeded() {
+        if !mgr.dsready && !mgr.dsrunning {
+            mgr.run { ok in
+                if ok {
+                    startMethodOps()
+                }
+            }
+        } else {
+            startMethodOps()
+        }
+    }
+
+    func startMethodOps() {
+        switch selectedmethod {
+        case .sbx:
+            if !mgr.sbxready && !mgr.sbxrunning {
+                mgr.sbxescape()
+            }
+        case .vfs:
+            if !mgr.vfsready && !mgr.vfsrunning {
+                mgr.vfsinit()
+            }
+        case .hybrid:
+            if !mgr.sbxready && !mgr.sbxrunning {
+                mgr.sbxescape()
+            }
+            if !mgr.vfsready && !mgr.vfsrunning {
+                mgr.vfsinit()
+            }
         }
     }
 }
 
 struct SantanderBrowserSheet: UIViewControllerRepresentable {
     let startPath: String
-    @State private var selectedmethod: method = .sbx
+    let readUsesSBX: Bool
+    let writeUsesVFS: Bool
+    private static var cachedNav: UINavigationController?
 
     func makeUIViewController(context: Context) -> UINavigationController {
-        let useSBX = (selectedmethod == .sbx)
-        let root = SantanderPathListViewController(path: SantanderPath(path: startPath, isDirectory: true), useSBX: useSBX)
-        return UINavigationController(rootViewController: root)
+        if let nav = Self.cachedNav {
+            return nav
+        }
+        let root = SantanderPathListViewController(
+            path: SantanderPath(path: startPath, isDirectory: true),
+            readUsesSBX: readUsesSBX,
+            useVFSOverwrite: writeUsesVFS
+        )
+        let nav = UINavigationController(rootViewController: root)
+        Self.cachedNav = nav
+        return nav
     }
 
     func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
-        if let raw = UserDefaults.standard.string(forKey: "selectedmethod"),
-           let m = method(rawValue: raw) {
-            selectedmethod = m
-        }
+        // no-op
     }
 }
 
@@ -98,7 +144,7 @@ struct SantanderPath: Hashable {
     }
 }
 
-final class SantanderPathListViewController: UITableViewController, UISearchResultsUpdating, UISearchBarDelegate {
+final class SantanderPathListViewController: UITableViewController, UISearchResultsUpdating, UISearchBarDelegate, UIDocumentPickerDelegate {
     private struct ClipboardItem {
         let path: String
         let isDirectory: Bool
@@ -110,14 +156,16 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
     private var unfilteredContents: [SantanderPath]
     private var renderedContents: [SantanderPath]
     private let currentPath: SantanderPath
-    private let useSBX: Bool
+    private let readUsesSBX: Bool
+    private let useVFSOverwrite: Bool
     private var initialEmptyStateMessage: String?
     private var isSearching = false
     private var displayHiddenFiles = true
 
-    init(path: SantanderPath, useSBX: Bool) {
-        self.useSBX = useSBX
-        let initialListing = Self.loadDirectoryContents(for: path, useSBX: useSBX)
+    init(path: SantanderPath, readUsesSBX: Bool, useVFSOverwrite: Bool) {
+        self.readUsesSBX = readUsesSBX
+        self.useVFSOverwrite = useVFSOverwrite
+        let initialListing = Self.loadDirectoryContents(for: path, readUsesSBX: readUsesSBX)
         self.currentPath = path
         self.unfilteredContents = initialListing.items
         self.renderedContents = initialListing.items
@@ -173,7 +221,7 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
             let replaceAction = UIAction(
                 title: "Replace With Clipboard",
                 image: UIImage(systemName: "doc.on.clipboard"),
-                attributes: (Self.clipboard == nil || !self.useSBX) ? [.disabled] : []
+                attributes: (Self.clipboard == nil || (!self.readUsesSBX && !self.useVFSOverwrite)) ? [.disabled] : []
             ) { [weak self] _ in
                 self?.replaceItem(item)
             }
@@ -193,10 +241,10 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
         tableView.deselectRow(at: indexPath, animated: true)
         let path = renderedContents[indexPath.row]
         if path.isDirectory {
-            let vc = SantanderPathListViewController(path: path, useSBX: useSBX)
+            let vc = SantanderPathListViewController(path: path, readUsesSBX: readUsesSBX, useVFSOverwrite: useVFSOverwrite)
             navigationController?.pushViewController(vc, animated: true)
         } else {
-            let vc = SantanderFileReaderViewController(path: path, useSBX: useSBX)
+            let vc = SantanderFileReaderViewController(path: path, readUsesSBX: readUsesSBX, useVFSOverwrite: useVFSOverwrite)
             navigationController?.pushViewController(vc, animated: true)
         }
     }
@@ -240,11 +288,11 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
         tableView.backgroundView = label
     }
 
-    private static func loadDirectoryContents(for path: SantanderPath, useSBX: Bool) -> (items: [SantanderPath], emptyStateMessage: String?) {
+    private static func loadDirectoryContents(for path: SantanderPath, readUsesSBX: Bool) -> (items: [SantanderPath], emptyStateMessage: String?) {
         guard path.isDirectory else { return ([], "Not a directory.") }
 
         let mgr = laramgr.shared
-        if useSBX {
+        if readUsesSBX {
             guard mgr.sbxready else { return ([], "Sandbox escape not ready.") }
             return loadDirectoryContentsSBX(for: path)
         }
@@ -269,6 +317,14 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
 
     private static func loadDirectoryContentsSBX(for path: SantanderPath) -> (items: [SantanderPath], emptyStateMessage: String?) {
         let fm = FileManager.default
+        var isDir = ObjCBool(false)
+        let exists = fm.fileExists(atPath: path.path, isDirectory: &isDir)
+        if !exists || !isDir.boolValue {
+            return ([], "Directory no longer exists.")
+        }
+        if !fm.isReadableFile(atPath: path.path) {
+            return ([], "Cannot list directory (missing permissions).")
+        }
         do {
             let entries = try fm.contentsOfDirectory(atPath: path.path)
             let items = entries.map { name in
@@ -282,7 +338,11 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
             }
             return (items, nil)
         } catch {
-            return ([], "Unable to list directory.")
+            let nsError = error as NSError
+            if nsError.domain == NSCocoaErrorDomain && nsError.code == NSFileReadNoPermissionError {
+                return ([], "Cannot list directory (missing permissions).")
+            }
+            return ([], "Unable to list directory: \(nsError.localizedDescription)")
         }
     }
 
@@ -311,17 +371,23 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
     }
 
     private func makeRightBarButton() -> UIMenu {
+        let uploadAction = UIAction(
+            title: "Upload File",
+            image: UIImage(systemName: "square.and.arrow.down")
+        ) { [weak self] _ in
+            self?.presentUploadPicker()
+        }
         let pasteAction = UIAction(
             title: "Paste",
             image: UIImage(systemName: "doc.on.clipboard"),
-            attributes: (Self.clipboard == nil || !useSBX) ? [.disabled] : []
+            attributes: (Self.clipboard == nil || !readUsesSBX) ? [.disabled] : []
         ) { [weak self] _ in
             self?.pasteClipboardItem()
         }
         let pasteReplaceAction = UIAction(
             title: "Paste (Replace)",
             image: UIImage(systemName: "doc.on.clipboard.fill"),
-            attributes: (Self.clipboard == nil || !useSBX) ? [.disabled] : []
+            attributes: (Self.clipboard == nil || !readUsesSBX) ? [.disabled] : []
         ) { [weak self] _ in
             self?.pasteClipboardItem(replaceExisting: true)
         }
@@ -342,18 +408,18 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
         }
         let goRoot = UIAction(title: "Go to Root", image: UIImage(systemName: "externaldrive")) { [weak self] _ in
             guard let self else { return }
-            let vc = SantanderPathListViewController(path: SantanderPath(path: "/", isDirectory: true), useSBX: useSBX)
+            let vc = SantanderPathListViewController(path: SantanderPath(path: "/", isDirectory: true), readUsesSBX: readUsesSBX, useVFSOverwrite: useVFSOverwrite)
             self.navigationController?.setViewControllers([vc], animated: true)
         }
         let goHome = UIAction(title: "Go to Home", image: UIImage(systemName: "house")) { [weak self] _ in
             guard let self else { return }
-            let vc = SantanderPathListViewController(path: SantanderPath(path: NSHomeDirectory(), isDirectory: true), useSBX: useSBX)
+            let vc = SantanderPathListViewController(path: SantanderPath(path: NSHomeDirectory(), isDirectory: true), readUsesSBX: readUsesSBX, useVFSOverwrite: useVFSOverwrite)
             self.navigationController?.setViewControllers([vc], animated: true)
         }
         let sortMenu = UIMenu(title: "Sort by..", image: UIImage(systemName: "arrow.up.arrow.down"), children: [sortAZ, sortZA])
         let viewMenu = UIMenu(title: "View", image: UIImage(systemName: "eye"), children: [toggleHidden])
         let goMenu = UIMenu(title: "Go to..", image: UIImage(systemName: "arrow.right"), children: [goRoot, goHome])
-        return UIMenu(children: [pasteAction, pasteReplaceAction, sortMenu, viewMenu, goMenu])
+        return UIMenu(children: [uploadAction, pasteAction, pasteReplaceAction, sortMenu, viewMenu, goMenu])
     }
 
     func updateSearchResults(for searchController: UISearchController) {
@@ -389,7 +455,7 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
     }
 
     private func shouldShowFooter() -> Bool {
-        return !useSBX
+        return !readUsesSBX
     }
 
     @objc private func showInfo() {
@@ -413,7 +479,7 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
     }
 
     private func pasteClipboardItem(replaceExisting: Bool = false) {
-        guard useSBX else {
+        guard readUsesSBX else {
             let alert = UIAlertController(title: "Paste Unavailable", message: "Paste is only supported in SBX mode.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
@@ -467,7 +533,7 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
     }
 
     private func reloadContents() {
-        let listing = Self.loadDirectoryContents(for: currentPath, useSBX: useSBX)
+        let listing = Self.loadDirectoryContents(for: currentPath, readUsesSBX: readUsesSBX)
         unfilteredContents = listing.items
         initialEmptyStateMessage = listing.emptyStateMessage
         applyFilters(query: navigationItem.searchController?.searchBar.text ?? "")
@@ -483,7 +549,7 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
     }
 
     private func deleteItem(_ item: SantanderPath) {
-        guard useSBX else {
+        guard readUsesSBX else {
             let alert = UIAlertController(title: "Delete Unavailable", message: "Delete is only supported in SBX mode.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
@@ -500,13 +566,27 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
     }
 
     private func replaceItem(_ item: SantanderPath) {
-        guard useSBX else {
+        guard let clip = Self.clipboard else { return }
+        if useVFSOverwrite {
+            if !item.isDirectory && !clip.isDirectory {
+                replaceItemVFS(item, clip: clip)
+                return
+            }
+            if readUsesSBX {
+                replaceItemSBX(item, clip: clip)
+                return
+            }
             let alert = UIAlertController(title: "Replace Unavailable", message: "Replace is only supported in SBX mode.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
             return
         }
-        guard let clip = Self.clipboard else { return }
+        guard readUsesSBX else {
+            let alert = UIAlertController(title: "Replace Unavailable", message: "Replace is only supported in SBX mode.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
         if clip.isDirectory {
             if item.path == clip.path || item.path.hasPrefix(clip.path + "/") {
                 let alert = UIAlertController(title: "Replace Failed", message: "Cannot replace with a folder into itself.", preferredStyle: .alert)
@@ -527,10 +607,91 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
             present(alert, animated: true)
         }
     }
+
+    private func replaceItemVFS(_ item: SantanderPath, clip: ClipboardItem) {
+        let mgr = laramgr.shared
+        guard mgr.vfsready else {
+            let alert = UIAlertController(title: "VFS Not Ready", message: "Run VFS init before overwriting files.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
+        let ok = mgr.vfsoverwritefromlocalpath(target: item.path, source: clip.path)
+        if ok {
+            reloadContents()
+        } else {
+            let alert = UIAlertController(title: "Replace Failed", message: "VFS overwrite failed.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+        }
+    }
+
+    private func replaceItemSBX(_ item: SantanderPath, clip: ClipboardItem) {
+        if clip.isDirectory {
+            if item.path == clip.path || item.path.hasPrefix(clip.path + "/") {
+                let alert = UIAlertController(title: "Replace Failed", message: "Cannot replace with a folder into itself.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                present(alert, animated: true)
+                return
+            }
+        }
+        do {
+            if FileManager.default.fileExists(atPath: item.path) {
+                try FileManager.default.removeItem(atPath: item.path)
+            }
+            try FileManager.default.copyItem(atPath: clip.path, toPath: item.path)
+            reloadContents()
+        } catch {
+            let alert = UIAlertController(title: "Replace Failed", message: error.localizedDescription, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+        }
+    }
+
+    private func presentUploadPicker() {
+        guard readUsesSBX else {
+            let alert = UIAlertController(title: "Upload Unavailable", message: "Upload is only supported in SBX mode.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        present(picker, animated: true)
+    }
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { return }
+        guard url.startAccessingSecurityScopedResource() else {
+            let alert = UIAlertController(title: "Upload Failed", message: "Unable to access selected file.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+
+        let destDir = currentPath.path
+        let baseDest = (destDir as NSString).appendingPathComponent(url.lastPathComponent)
+        let dest = uniqueDestinationPath(base: baseDest)
+
+        do {
+            if FileManager.default.fileExists(atPath: dest) {
+                try FileManager.default.removeItem(atPath: dest)
+            }
+            try FileManager.default.copyItem(at: url, to: URL(fileURLWithPath: dest))
+            reloadContents()
+        } catch {
+            let alert = UIAlertController(title: "Upload Failed", message: error.localizedDescription, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+        }
+    }
 }
 
-final class SantanderFileReaderViewController: UIViewController, QLPreviewControllerDataSource {
-    private let usingSBX: Bool
+final class SantanderFileReaderViewController: UIViewController, QLPreviewControllerDataSource, UISearchResultsUpdating, UISearchBarDelegate {
+    private let readUsesSBX: Bool
+    private let useVFSOverwrite: Bool
     private let path: SantanderPath
     private let textView = UITextView()
     private let imageView = UIImageView()
@@ -540,10 +701,14 @@ final class SantanderFileReaderViewController: UIViewController, QLPreviewContro
     private var isEditingFile = false
     private var isEditableText = false
     private var editButton: UIBarButtonItem?
+    private var originalText: String = ""
+    private var isTextPreview = false
+    private let searchController = UISearchController(searchResultsController: nil)
 
-    init(path: SantanderPath, useSBX: Bool) {
+    init(path: SantanderPath, readUsesSBX: Bool, useVFSOverwrite: Bool) {
         self.path = path
-        self.usingSBX = useSBX
+        self.readUsesSBX = readUsesSBX
+        self.useVFSOverwrite = useVFSOverwrite
         super.init(nibName: nil, bundle: nil)
         self.title = path.lastPathComponent
     }
@@ -580,9 +745,16 @@ final class SantanderFileReaderViewController: UIViewController, QLPreviewContro
             imageView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
 
-        if usingSBX {
+        searchController.searchResultsUpdater = self
+        searchController.searchBar.delegate = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+
+        let canEdit = readUsesSBX || useVFSOverwrite
+        if canEdit {
             let edit = UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(toggleEdit))
-            edit.isEnabled = false
+            edit.isEnabled = true
             editButton = edit
             navigationItem.rightBarButtonItems = [
                 edit,
@@ -601,67 +773,25 @@ final class SantanderFileReaderViewController: UIViewController, QLPreviewContro
 
     private func loadFile() {
         let mgr = laramgr.shared
-        if usingSBX {
-            if let type = path.contentType {
-                if type.isSubtype(of: .image) {
-                    guard let data = readFileSBX(maxBytes: 8 * 1024 * 1024) else {
-                        textView.text = "Failed to read file."
-                        return
-                    }
-                    if let image = UIImage(data: data) {
-                        imageView.image = image
-                        imageView.isHidden = false
-                        textView.isHidden = true
-                        return
-                    }
-                }
-
-                if type.isSubtype(of: .audio) || type.isSubtype(of: .movie) || type.isSubtype(of: .video) {
-                    if prepareTempFileIfNeeded(maxBytes: 128 * 1024 * 1024) {
-                        let player = AVPlayer(url: tempURL!)
-                        let pvc = AVPlayerViewController()
-                        pvc.player = player
-                        addChild(pvc)
-                        pvc.view.frame = view.bounds
-                        pvc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                        view.addSubview(pvc.view)
-                        pvc.didMove(toParent: self)
-                        playerVC = pvc
-                        player.play()
-                        return
-                    } else {
-                        textView.text = "Failed to prepare media file."
-                        return
-                    }
-                }
-            }
-
-            guard let data = readFileSBX(maxBytes: 2 * 1024 * 1024) else {
-                textView.text = "Failed to read file."
-                return
-            }
-            let rendered = render(data: data)
-            textView.text = rendered.text
-            setEditableText(rendered.isUtf8)
-            return
-        }
-
-        if let type = path.contentType {
-            if type.isSubtype(of: .image) {
-                guard let data = mgr.vfsread(path: path.path, maxSize: 8 * 1024 * 1024) else {
-                    textView.text = "Failed to read file."
+        if readUsesSBX {
+            if isImagePath(path) {
+                guard let data = readFileSBX(maxBytes: 8 * 1024 * 1024) else {
+                    setTextPreview("Failed to read file.\n\n" + unreadableFileDetails(for: path.path), editable: false)
                     return
                 }
                 if let image = UIImage(data: data) {
                     imageView.image = image
                     imageView.isHidden = false
                     textView.isHidden = true
+                    isTextPreview = false
                     return
                 }
             }
 
-            if type.isSubtype(of: .audio) || type.isSubtype(of: .movie) || type.isSubtype(of: .video) {
+            if isMediaPath(path) {
                 if prepareTempFileIfNeeded(maxBytes: 128 * 1024 * 1024) {
+                    try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+                    try? AVAudioSession.sharedInstance().setActive(true, options: [])
                     let player = AVPlayer(url: tempURL!)
                     let pvc = AVPlayerViewController()
                     pvc.player = player
@@ -672,11 +802,56 @@ final class SantanderFileReaderViewController: UIViewController, QLPreviewContro
                     pvc.didMove(toParent: self)
                     playerVC = pvc
                     player.play()
+                    isTextPreview = false
                     return
                 } else {
                     textView.text = "Failed to prepare media file."
                     return
                 }
+            }
+
+            guard let data = readFileSBX(maxBytes: 2 * 1024 * 1024) else {
+                setTextPreview("Failed to read file.\n\n" + unreadableFileDetails(for: path.path), editable: false)
+                return
+            }
+            let rendered = render(data: data)
+            setTextPreview(rendered.text, editable: rendered.isEditable)
+            return
+        }
+
+        if isImagePath(path) {
+            guard let data = mgr.vfsread(path: path.path, maxSize: 8 * 1024 * 1024) else {
+                textView.text = "Failed to read file."
+                return
+            }
+            if let image = UIImage(data: data) {
+                imageView.image = image
+                imageView.isHidden = false
+                textView.isHidden = true
+                isTextPreview = false
+                return
+            }
+        }
+
+        if isMediaPath(path) {
+            if prepareTempFileIfNeeded(maxBytes: 128 * 1024 * 1024) {
+                try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+                try? AVAudioSession.sharedInstance().setActive(true, options: [])
+                let player = AVPlayer(url: tempURL!)
+                let pvc = AVPlayerViewController()
+                pvc.player = player
+                addChild(pvc)
+                pvc.view.frame = view.bounds
+                pvc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                view.addSubview(pvc.view)
+                pvc.didMove(toParent: self)
+                playerVC = pvc
+                player.play()
+                isTextPreview = false
+                return
+            } else {
+                textView.text = "Failed to prepare media file."
+                return
             }
         }
 
@@ -685,14 +860,19 @@ final class SantanderFileReaderViewController: UIViewController, QLPreviewContro
             return
         }
         let rendered = render(data: data)
-        textView.text = rendered.text
+        setTextPreview(rendered.text, editable: rendered.isEditable)
     }
 
     @objc private func toggleEdit() {
-        guard usingSBX, isEditableText else { return }
         if isEditingFile {
             saveEdits()
         } else {
+            guard isTextPreview else {
+                let alert = UIAlertController(title: "Edit Unavailable", message: "This file type isn't editable in the viewer.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                present(alert, animated: true)
+                return
+            }
             isEditingFile = true
             textView.isEditable = true
             textView.becomeFirstResponder()
@@ -702,6 +882,31 @@ final class SantanderFileReaderViewController: UIViewController, QLPreviewContro
 
     private func saveEdits() {
         let data = Data(textView.text.utf8)
+        if useVFSOverwrite {
+            let mgr = laramgr.shared
+            guard mgr.vfsready else {
+                let alert = UIAlertController(title: "VFS Not Ready", message: "Run VFS init before overwriting files.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                present(alert, animated: true)
+                return
+            }
+            let ok = mgr.vfsoverwritewithdata(target: path.path, data: data)
+            if ok {
+                isEditingFile = false
+                textView.isEditable = false
+                textView.resignFirstResponder()
+                editButton?.title = "Edit"
+                let alert = UIAlertController(title: "Saved", message: "File updated.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                present(alert, animated: true)
+            } else {
+                let alert = UIAlertController(title: "Save Failed", message: "VFS overwrite failed.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                present(alert, animated: true)
+            }
+            return
+        }
+
         do {
             try data.write(to: URL(fileURLWithPath: path.path), options: .atomic)
             isEditingFile = false
@@ -736,21 +941,260 @@ final class SantanderFileReaderViewController: UIViewController, QLPreviewContro
         return nil
     }
 
-    private func render(data: Data) -> (text: String, isUtf8: Bool) {
-        if let s = String(data: data, encoding: .utf8) {
-            return (s, true)
+    private func render(data: Data) -> (text: String, isEditable: Bool) {
+        if data.isEmpty {
+            return ("(empty file)", true)
         }
-        let maxBytes = min(data.count, 8192)
-        let hex = data.prefix(maxBytes).map { String(format: "%02x", $0) }.joined(separator: " ")
-        if data.count > maxBytes {
-            return (hex + "\n... (" + String(data.count) + " bytes total)", false)
+
+        if let plist = decodePropertyList(from: data) {
+            return (plist, false)
         }
-        return (hex, false)
+
+        if let text = decodeText(from: data) {
+            return (text, true)
+        }
+
+        return (binaryPreview(from: data), false)
     }
 
     private func setEditableText(_ editable: Bool) {
         isEditableText = editable
-        editButton?.isEnabled = editable
+    }
+
+    private func setTextPreview(_ text: String, editable: Bool) {
+        isTextPreview = true
+        originalText = text
+        textView.isHidden = false
+        imageView.isHidden = true
+        textView.text = text
+        textView.attributedText = nil
+        setEditableText(editable)
+        applySearch(query: searchController.searchBar.text ?? "")
+    }
+
+    func updateSearchResults(for searchController: UISearchController) {
+        let query = searchController.searchBar.text ?? ""
+        applySearch(query: query)
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        applySearch(query: "")
+    }
+
+    private func applySearch(query: String) {
+        guard isTextPreview else { return }
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if q.isEmpty {
+            textView.text = originalText
+            return
+        }
+
+        let base = originalText as NSString
+        let fullRange = NSRange(location: 0, length: base.length)
+        let attributed = NSMutableAttributedString(string: originalText)
+        attributed.addAttribute(.font, value: textView.font ?? UIFont.monospacedSystemFont(ofSize: 12, weight: .regular), range: fullRange)
+
+        var foundRanges: [NSRange] = []
+        var searchRange = fullRange
+        while true {
+            let range = base.range(of: q, options: [.caseInsensitive], range: searchRange)
+            if range.location == NSNotFound { break }
+            foundRanges.append(range)
+            let nextLoc = range.location + max(range.length, 1)
+            if nextLoc >= base.length { break }
+            searchRange = NSRange(location: nextLoc, length: base.length - nextLoc)
+        }
+
+        for r in foundRanges {
+            attributed.addAttribute(.backgroundColor, value: UIColor.systemYellow.withAlphaComponent(0.35), range: r)
+        }
+
+        textView.attributedText = attributed
+
+        if let first = foundRanges.first {
+            textView.scrollRangeToVisible(first)
+        }
+    }
+
+    private func isImagePath(_ path: SantanderPath) -> Bool {
+        if let type = path.contentType, type.isSubtype(of: .image) { return true }
+        let ext = (path.path as NSString).pathExtension.lowercased()
+        return ["png", "jpg", "jpeg", "gif", "heic", "heif", "bmp", "tif", "tiff", "webp"].contains(ext)
+    }
+
+    private func isMediaPath(_ path: SantanderPath) -> Bool {
+        if let type = path.contentType {
+            if type.isSubtype(of: .audio) || type.isSubtype(of: .movie) || type.isSubtype(of: .video) { return true }
+        }
+        let ext = (path.path as NSString).pathExtension.lowercased()
+        if ["mp4", "mov", "m4v", "avi", "mkv"].contains(ext) { return true }
+        if [
+            "mp3", "m4a", "m4b", "m4p", "aac", "aiff", "aif", "aifc", "wav", "wave",
+            "caf", "flac", "alac", "opus", "oga", "ogg", "mka", "wma", "ac3", "eac3",
+            "amr", "3gp", "3gpp", "3g2", "au", "snd", "mp2", "mp1", "ape", "tta", "wv"
+        ].contains(ext) { return true }
+        return false
+    }
+
+    private func decodePropertyList(from data: Data) -> String? {
+        guard data.starts(with: Data("bplist".utf8)) || data.starts(with: Data("<?xml".utf8)) else {
+            return nil
+        }
+
+        guard let plistObject = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) else {
+            return nil
+        }
+
+        if JSONSerialization.isValidJSONObject(plistObject),
+           let jsonData = try? JSONSerialization.data(withJSONObject: plistObject, options: [.prettyPrinted, .sortedKeys]),
+           let json = String(data: jsonData, encoding: .utf8) {
+            return json
+        }
+
+        if let xmlData = try? PropertyListSerialization.data(fromPropertyList: plistObject, format: .xml, options: 0),
+           let xml = String(data: xmlData, encoding: .utf8) {
+            return xml
+        }
+
+        return String(describing: plistObject)
+    }
+
+    private func decodeText(from data: Data) -> String? {
+        let encodings: [String.Encoding] = [
+            .utf8,
+            .utf16,
+            .utf16LittleEndian,
+            .utf16BigEndian,
+            .utf32,
+            .utf32LittleEndian,
+            .utf32BigEndian,
+            .ascii,
+            .isoLatin1,
+            .windowsCP1252,
+            .macOSRoman,
+            .nonLossyASCII
+        ]
+
+        for encoding in encodings {
+            guard let value = String(data: data, encoding: encoding) else { continue }
+            if looksLikeText(value) {
+                return value
+            }
+        }
+        return nil
+    }
+
+    private func looksLikeText(_ value: String) -> Bool {
+        if value.isEmpty { return true }
+        let scalars = value.unicodeScalars
+        let disallowed = scalars.filter { scalar in
+            let v = scalar.value
+            if v == 9 || v == 10 || v == 13 { return false }
+            if v < 32 { return true }
+            if v >= 0x7F && v <= 0x9F { return true }
+            return false
+        }
+        return Double(disallowed.count) / Double(scalars.count) < 0.01
+    }
+
+    private func binaryPreview(from data: Data) -> String {
+        let limit = min(data.count, 4096)
+        let chunk = data.prefix(limit)
+        var lines: [String] = []
+        lines.append("Binary data (\(data.count) bytes). Showing first \(limit) bytes:")
+        lines.append("")
+
+        var offset = 0
+        while offset < chunk.count {
+            let row = chunk[offset..<min(offset + 16, chunk.count)]
+            let hex = row.map { String(format: "%02X", $0) }.joined(separator: " ")
+            let ascii = row.map { byte -> String in
+                if byte >= 32 && byte <= 126 { return String(UnicodeScalar(byte)) }
+                return "."
+            }.joined()
+            lines.append(String(format: "%08X  %-47@  %@", offset, hex as NSString, ascii))
+            offset += 16
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private func unreadableFileDetails(for path: String) -> String {
+        let fm = FileManager.default
+        var lines: [String] = []
+
+        var isDir = ObjCBool(false)
+        let exists = fm.fileExists(atPath: path, isDirectory: &isDir)
+        lines.append("Exists: \(exists ? "yes" : "no")")
+        if exists {
+            lines.append("Kind: \(isDir.boolValue ? "directory" : "regular item")")
+        }
+
+        let url = URL(fileURLWithPath: path)
+        let keys: Set<URLResourceKey> = [
+            .contentTypeKey,
+            .isSymbolicLinkKey,
+            .isAliasFileKey,
+            .fileSizeKey
+        ]
+        if let values = try? url.resourceValues(forKeys: keys) {
+            if let type = values.contentType {
+                lines.append("UTType: \(type.identifier)")
+            }
+            if let size = values.fileSize {
+                lines.append("Size: \(size) bytes")
+            }
+            if let isSymLink = values.isSymbolicLink {
+                lines.append("Symlink: \(isSymLink ? "yes" : "no")")
+            }
+            if values.isSymbolicLink == true,
+               let target = try? fm.destinationOfSymbolicLink(atPath: path) {
+                lines.append("Symlink target: \(target)")
+            }
+            if let isAlias = values.isAliasFile {
+                lines.append("Alias file: \(isAlias ? "yes" : "no")")
+            }
+        }
+
+        if let attrs = try? fm.attributesOfItem(atPath: path) {
+            if let fileType = attrs[.type] as? FileAttributeType {
+                lines.append("File attribute type: \(fileType.rawValue)")
+            }
+            let ownerName = attrs[.ownerAccountName] as? String
+            let ownerID = (attrs[.ownerAccountID] as? NSNumber)?.intValue
+            switch (ownerName, ownerID) {
+            case let (name?, id?):
+                lines.append("Owner: \(name) (\(id))")
+            case let (name?, nil):
+                lines.append("Owner: \(name)")
+            case let (nil, id?):
+                lines.append("Owner ID: \(id)")
+            default:
+                break
+            }
+
+            let groupName = attrs[.groupOwnerAccountName] as? String
+            let groupID = (attrs[.groupOwnerAccountID] as? NSNumber)?.intValue
+            switch (groupName, groupID) {
+            case let (name?, id?):
+                lines.append("Group: \(name) (\(id))")
+            case let (name?, nil):
+                lines.append("Group: \(name)")
+            case let (nil, id?):
+                lines.append("Group ID: \(id)")
+            default:
+                break
+            }
+            if let perms = attrs[.posixPermissions] as? NSNumber {
+                lines.append(String(format: "POSIX perms: %04o", perms.intValue))
+            }
+        }
+
+        lines.append("Readable: \(fm.isReadableFile(atPath: path) ? "yes" : "no")")
+        lines.append("Writable: \(fm.isWritableFile(atPath: path) ? "yes" : "no")")
+        lines.append("Executable: \(fm.isExecutableFile(atPath: path) ? "yes" : "no")")
+
+        return lines.joined(separator: "\n")
     }
 
     @objc private func showPreview() {
@@ -781,7 +1225,7 @@ final class SantanderFileReaderViewController: UIViewController, QLPreviewContro
     private func prepareTempFileIfNeeded(maxBytes: Int64) -> Bool {
         if let url = tempURL, FileManager.default.fileExists(atPath: url.path) { return true }
 
-        if usingSBX {
+        if readUsesSBX {
             guard let size = fileSizeSBX(), size > 0 else { return false }
             if size > maxBytes {
                 textView.text = "File too large to preview (\(size) bytes)."

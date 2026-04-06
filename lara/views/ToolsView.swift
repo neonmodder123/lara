@@ -158,7 +158,7 @@ struct ToolsView: View {
                 }
                 
                 Button {
-                    token = mgr.sbxgettoken(path: "/")
+                    token = mgr.sbxgettoken(path: "/var/mobile")
                 } label: {
                     Text("Issue Token")
                 }

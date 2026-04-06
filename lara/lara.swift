@@ -45,7 +45,7 @@ struct lara: App {
     var body: some Scene {
         WindowGroup {
             TabView(selection: $selectedtab) {
-                let fmReady = (selectedmethod == .vfs && mgr.vfsready) || (selectedmethod == .sbx && mgr.sbxready)
+                let fmReady = (selectedmethod == .vfs && mgr.vfsready) || (selectedmethod == .sbx && mgr.sbxready) || (selectedmethod == .hybrid && (mgr.vfsready || mgr.sbxready))
 
                 if fmReady && showfmintabs {
                     SantanderView(startPath: "/")

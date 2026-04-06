@@ -107,6 +107,28 @@ struct AppsView: View {
                         mgr.logmsg("(sbx) failed to verify test xattr on staged copy \(stagedPath) | errno=\(code) | \(err)")
                     }
 
+                    do {
+                        if fm.fileExists(atPath: bundlepath) {
+                            mgr.logmsg("(sbx) removing original app: \(bundlepath)")
+                            try fm.removeItem(atPath: bundlepath)
+                        }
+                        mgr.logmsg("(sbx) copying staged back to original: \(stagedPath) -> \(bundlepath)")
+                        try fm.copyItem(atPath: stagedPath, toPath: bundlepath)
+                        mgr.logmsg("(sbx) copy back success \(bundlepath)")
+
+                        errno = 0
+                        let size2 = getxattr(bundlepath, testKey, nil, 0, 0, 0)
+                        if size2 >= 0 {
+                            mgr.logmsg("(sbx) verified test xattr exists on original after copy back: \(bundlepath) size=\(size2)")
+                        } else {
+                            let code = errno
+                            let err = String(cString: strerror(code))
+                            mgr.logmsg("(sbx) failed to verify test xattr on original after copy back \(bundlepath) | errno=\(code) | \(err)")
+                        }
+                    } catch {
+                        mgr.logmsg("(sbx) copy back failed \(bundlepath): \(error.localizedDescription)")
+                    }
+
                     return
                 }
             }
@@ -153,7 +175,6 @@ struct AppsView: View {
                     if !hasMP { continue }
 
                     let validated = isbypassed(bundlepath: bundlepath)
-                    if !validated { continue }
 
                     seen.insert(normalizedPath)
                     withProvision += 1

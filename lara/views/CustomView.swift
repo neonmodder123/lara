@@ -1,5 +1,5 @@
 //
-//  CustomOverwriteView.swift
+//  CustomView.swift
 //  lara
 //
 //  Created by ruter on 29.03.26.
@@ -8,7 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct CustomOverwriteView: View {
+struct CustomView: View {
     @ObservedObject var mgr: laramgr
     @State private var targetPath: String = "/"
     @State private var showImporter = false
