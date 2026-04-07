@@ -218,15 +218,32 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
     }
 
     private func applyFilters(query: String = "") {
+        if !query.isEmpty {
+            isSearching = true
+
+            DispatchQueue.global(qos: .userInitiated).async {
+                let results = self.recursiveSearchSBX(
+                    at: self.currentPath.path,
+                    query: query
+                )
+
+                DispatchQueue.main.async {
+                    self.renderedContents = results
+                    self.updateEmptyState(query: query)
+                    self.tableView.reloadData()
+                }
+            }
+
+            return
+        }
+
+        isSearching = false
+
         var items = unfilteredContents
         if !displayHiddenFiles {
             items = items.filter { !$0.lastPathComponent.starts(with: ".") }
         }
-        if !query.isEmpty {
-            items = items.filter {
-                $0.lastPathComponent.localizedCaseInsensitiveContains(query) || $0.path.localizedCaseInsensitiveContains(query)
-            }
-        }
+
         renderedContents = items
         updateEmptyState(query: query)
         tableView.reloadData()
@@ -281,6 +298,27 @@ final class SantanderPathListViewController: UITableViewController, UISearchResu
         }
 
         return (items, nil)
+    }
+    
+    private func recursiveSearchSBX(at rootPath: String, query: String) -> [SantanderPath] {
+        let fm = FileManager.default
+        var results: [SantanderPath] = []
+
+        guard let enumerator = fm.enumerator(atPath: rootPath) else { return [] }
+
+        for case let item as String in enumerator {
+            let fullPath = (rootPath as NSString).appendingPathComponent(item)
+
+            var isDir: ObjCBool = false
+            fm.fileExists(atPath: fullPath, isDirectory: &isDir)
+
+            if item.localizedCaseInsensitiveContains(query) ||
+               fullPath.localizedCaseInsensitiveContains(query) {
+                results.append(SantanderPath(path: fullPath, isDirectory: isDir.boolValue))
+            }
+        }
+
+        return results
     }
 
     private static func loadDirectoryContentsSBX(for path: SantanderPath) -> (items: [SantanderPath], emptyStateMessage: String?) {
