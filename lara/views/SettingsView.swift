@@ -247,6 +247,29 @@ struct SettingsView: View {
                             UIApplication.shared.open(url)
                         }
                     }
+
+                    HStack(alignment: .top) {
+                        AsyncImage(url: URL(string: "https://github.com/neonmodder123.png")) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            ProgressView()
+                        }
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        
+                        VStack(alignment: .leading) {
+                            Text("neonmodder123")
+                                .font(.headline)
+                            
+                            Text("Fixed respring functionality!")
+                                .font(.subheadline)
+                                .foregroundColor(Color.secondary)
+                        }
+                        
+                        Spacer()
+                    }
                 } header: {
                     Text("Credits")
                 }
