@@ -132,11 +132,6 @@ final class laramgr: ObservableObject {
         }
     }
     
-    func respring() {
-        notify_post("com.apple.springboard.toggleLockScreen")
-        // killproc("springboard")
-    }
-    
     func vfsinit(completion: ((Bool) -> Void)? = nil) {
         vfs_setlogcallback(laramgr.vfslogcallback)
         vfs_setprogresscallback { progress in
