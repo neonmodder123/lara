@@ -69,10 +69,9 @@ struct ToolsView: View {
             
             Section {
                 Button {
-                    globallogger.log(String(format: "0x%llx",procbyname("springboard")))
-                    // killproc("springboard")
+                    respring.showRespringPage()
                 } label: {
-                    Text("Respring (probably broken)")
+                    Text("Respring (needs internet)")
                 }
                 
                 HStack {
