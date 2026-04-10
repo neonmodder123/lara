@@ -130,7 +130,7 @@ struct EditorView: View {
             }
             .alert("Done", isPresented: .constant(alert != nil)) {
                 Button("Cancel") { alert = nil }
-                Button("Respring") { mgr.respring() }
+                Button("Respring (needs internet)") { respring.showRespringPage() }
             } message: {
                 Text(alert ?? "uhh...")
             }
