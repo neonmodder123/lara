@@ -263,13 +263,20 @@ struct SettingsView: View {
                             Text("neonmodder123")
                                 .font(.headline)
                             
-                            Text("Fixed respring functionality!")
+                            Text("Fixed respring functionality.")
                                 .font(.subheadline)
                                 .foregroundColor(Color.secondary)
                         }
                         
                         Spacer()
                     }
+                    .onTapGesture {
+                        if let url = URL(string: "https://github.com/neonmodder123"),
+                           UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    
                 } header: {
                     Text("Credits")
                 }
