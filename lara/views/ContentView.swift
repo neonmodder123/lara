@@ -357,10 +357,8 @@ struct ContentView: View {
                             }
                         }
                         
-                        if #unavailable(iOS 18.2) {
-                            Button("Respring") {
-                                mgr.respring()
-                            }
+                        Button("Respring (needs internet)") {
+                            respring.showRespringPage()
                         }
                         
                         Button("Panic!") {
