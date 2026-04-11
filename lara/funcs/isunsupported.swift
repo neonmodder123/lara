@@ -49,9 +49,5 @@ func isunsupported() -> Bool {
         return true
     }
     
-    if islcinstalled() {
-        return true
-    }
-    
     return false
 }

@@ -9,34 +9,30 @@ import Foundation
 import MachO
 
 func islcinstalled() -> Bool {
-    // print("\nloaded images:")
+    let executablePath = Bundle.main.executablePath?.lowercased() ?? ""
+    if executablePath.contains("/documents/applications/") {
+        globallogger.log("\nlivecontainer detected: yeah (guest executable path)")
+        return true
+    }
 
-    var detected = false
     let count = _dyld_image_count()
-
-    // print("image count: \(count)\n")
 
     for i in 0..<count {
         guard let cName = _dyld_get_image_name(i) else {
             continue
         }
 
-        let name = String(cString: cName)
-        let lower = name.lowercased()
-
-        let match =
+        let lower = String(cString: cName).lowercased()
+        if lower.contains("livecontainershared") ||
+            lower.contains("/livecontainer.app/") ||
+            lower.contains("/liveprocess.app/") ||
             lower.contains("tweakinjector.dylib") ||
-            lower.contains("tweakloader.dylib")
-
-        if match {
-            // print("[\(i)] \(name) <- aha!")
-            detected = true
-        } else {
-            // print("[\(i)] \(name)")
+            lower.contains("tweakloader.dylib") {
+            globallogger.log("\nlivecontainer detected: yeah (\(lower))")
+            return true
         }
     }
 
-    globallogger.log("\nlivecontainer detected: \(detected ? "yeah" : "nah")")
-
-    return detected
+    globallogger.log("\nlivecontainer detected: nah")
+    return false
 }
