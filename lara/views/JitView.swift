@@ -163,7 +163,7 @@ struct JitView: View {
         }
     }
 
-    private func enableJIT(bundleID: String) {
+    /*private func enableJIT(bundleID: String) {
         guard enablingBundleID == nil else { return }
         guard mgr.dsready else {
 	            globallogger.log("kernel r/w not ready")
@@ -201,7 +201,42 @@ struct JitView: View {
 	                }
 	            }
         }
-    }
+    }*/
+
+	private func enableJIT(bundleID: String) {
+    	guard enablingBundleID == nil else { return }
+		guard mgr.dsready else {
+	        globallogger.log("kernel r/w not ready")
+	        return
+	    }
+
+    	enablingBundleID = bundleID
+    	let capturedBundleID = bundleID 
+
+    	let runEnable: () -> Void = {
+        	DispatchQueue.global(qos: .userInitiated).async {
+            	let err: Int32 = enable_jit(capturedBundleID) 
+            
+            	DispatchQueue.main.async {
+                	if err == 0 {
+                    	globallogger.log("(jit) enabled for \(capturedBundleID)")
+                	} else {
+                    	globallogger.log("(jit) failed: \(err)")
+                	}
+                	enablingBundleID = nil
+            	}
+        	}
+    	}
+
+    	if mgr.remotecallrunning {
+        	runEnable()
+    	} else {
+        	mgr.rcinit(process: "SpringBoard", migbypass: false) { success in
+            	if success { runEnable() } 
+            	else { enablingBundleID = nil }
+        	}
+    	}
+	}
         
     func addapp(atPath apppath: String, to apps: inout [proc]) {
         let infopath = apppath + "/Info.plist"
