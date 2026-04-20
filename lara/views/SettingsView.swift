@@ -23,6 +23,7 @@ struct SettingsView: View {
     @AppStorage("showfmintabs") private var showfmintabs: Bool = true
     @AppStorage("selectedmethod") private var selectedmethod: method = .hybrid
     @AppStorage("rcdockunlimited") private var rcdockunlimited: Bool = false
+    @State private var toggleIsOn = false
     
     var appname: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
@@ -121,9 +122,11 @@ struct SettingsView: View {
                     
                     Toggle("Show File Manager in Tabs", isOn: $showfmintabs)
 
-                    Toggle("Use offset 0x11 for t1sz_boot (M-devices and A16)", isOn: $toggleIsOn) { isOn in
-                        t1sz_boot = isOn ? 0x11 : 0x19
-                    }
+                    Toggle("Use offset 0x11 for t1sz_boot (M-devices and A16)", isOn: $toggleIsOn)
+                        .onChange(of: toggleIsOn) { newValue in
+                            t1sz_boot = newValue ? 0x11 : 0x19
+                            UserDefaults.standard.set(t1sz_boot, forKey: "lara.t1sz_boot")
+                        }
 
                 } header: {
                     Text("Lara Settings")
