@@ -121,6 +121,10 @@ struct SettingsView: View {
                     
                     Toggle("Show File Manager in Tabs", isOn: $showfmintabs)
 
+                    Toggle("Use offset 0x11 for t1sz_boot (M-devices and A16)", isOn: $toggleIsOn) { isOn in
+                        t1sz_boot = isOn ? 0x11 : 0x19
+                    }
+
                 } header: {
                     Text("Lara Settings")
                 } footer: {
