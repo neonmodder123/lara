@@ -85,29 +85,27 @@ struct lara: App {
                 offsets_init()
             }
             .onChange(of: scenePhase) { phase in
-                if 1 == 2 {
-                    if phase == .inactive || phase == .background {
-                        if mgr.rcrunning {
-                            var bgTask: UIBackgroundTaskIdentifier = .invalid
-                            bgTask = UIApplication.shared.beginBackgroundTask(withName: "RemoteCallCleanup") {
-                                if bgTask != .invalid {
-                                    UIApplication.shared.endBackgroundTask(bgTask)
-                                    bgTask = .invalid
-                                }
-                            }
-                            
-                            mgr.rcdestroy {
-                                if bgTask != .invalid {
-                                    UIApplication.shared.endBackgroundTask(bgTask)
-                                    bgTask = .invalid
-                                }
+                if phase == .inactive || phase == .background {
+                    if mgr.rcrunning {
+                        var bgTask: UIBackgroundTaskIdentifier = .invalid
+                        bgTask = UIApplication.shared.beginBackgroundTask(withName: "RemoteCallCleanup") {
+                            if bgTask != .invalid {
+                                UIApplication.shared.endBackgroundTask(bgTask)
+                                bgTask = .invalid
                             }
                         }
                         
-                        globallogger.stopcapture()
-                    } else if phase == .active {
-                        globallogger.capture()
+                        mgr.rcdestroy {
+                            if bgTask != .invalid {
+                                UIApplication.shared.endBackgroundTask(bgTask)
+                                bgTask = .invalid
+                            }
+                        }
                     }
+                    
+                    globallogger.stopcapture()
+                } else if phase == .active {
+                    globallogger.capture()
                 }
             }
             .alert(isPresented: $showunsupported) {

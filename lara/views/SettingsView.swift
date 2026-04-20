@@ -14,8 +14,10 @@ struct SettingsView: View {
     @Binding var hasoffsets: Bool
     @State private var showresetalert: Bool = false
     @State private var downloadingkernelcache = false
-    @State private var showingKernelcacheImporter: Bool = false
+    @State private var showkcacheimporter: Bool = false
     @State private var importingkernelcache: Bool = false
+    @State private var showkcachetips: Bool = false
+    @State private var statusMessage: String?
     @AppStorage("loggernobullshit") private var loggernobullshit: Bool = true
     @AppStorage("keepalive") private var iskeepalive: Bool = true
     @AppStorage("showfmintabs") private var showfmintabs: Bool = true
@@ -41,6 +43,24 @@ struct SettingsView: View {
         
         return UIImage(named: "unknown") ?? UIImage()
     }
+    private var t1szbootbind: Binding<String> {
+        Binding(
+            get: {
+                String(format: "0x%llx", t1sz_boot)
+            },
+            set: { newval in
+                let cleaned = newval
+                    .replacingOccurrences(of: "0x", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
+                if let value = UInt64(cleaned, radix: 16) {
+                    t1sz_boot = value
+                    UserDefaults.standard.set(value, forKey: "lara.t1sz_boot")
+                    UserDefaults.standard.synchronize()
+                }
+            }
+        )
+    }
     
     var body: some View {
         NavigationStack {
@@ -64,7 +84,6 @@ struct SettingsView: View {
                 } header: {
                     Text("Lara")
                 }
-                
                 
                 Section {
                     Picker("", selection: $selectedmethod) {
@@ -137,40 +156,21 @@ struct SettingsView: View {
                             mgr.run()
                         }
                         
-                        Button("Import Kernelcache from Files") {
-                            guard !importingkernelcache else { return }
-                            showingKernelcacheImporter = true
+                        HStack {
+                            Button("Import Kernelcache from Files") {
+                                guard !importingkernelcache else { return }
+                                showkcacheimporter = true
+                            }
+                            .disabled(importingkernelcache)
+                            
+                            Spacer()
+                            
+                            Button {
+                                showkcachetips.toggle()
+                            } label: {
+                                Image(systemName: "lightbulb.max.fill")
+                            }
                         }
-                        .disabled(importingkernelcache)
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("How to obtain a kernelcache (macOS)")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundColor(.primary)
-
-                            Text("1. Download the IPSW tool for your device.")
-                            Link("https://github.com/blacktop/ipsw/releases",
-                                 destination: URL(string: "https://github.com/blacktop/ipsw/releases")!)
-
-                            Text("2. Extract the archive.")
-                            Text("3. Open Terminal.")
-                            Text("4. Navigate to the extracted folder:")
-                            Text("cd /path/to/ipsw_3.1.671_something_something/")
-                                .font(.system(.caption2, design: .monospaced))
-                                .textSelection(.enabled)
-
-                            Text("5. Extract the kernel:")
-                            Text("./ipsw extract --kernel [drag your ipsw here]")
-                                .font(.system(.caption2, design: .monospaced))
-                                .textSelection(.enabled)
-
-                            Text("6. Get the kernelcache file.")
-                            Text("7. Transfer the kernelcache to your iCloud or iPhone.")
-                            Text("8. Tap the button above and select the kernelcache, for example kernelcache.release.iPhone14,3.")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.vertical, 4)
                     }
                     
                     Button {
@@ -182,7 +182,90 @@ struct SettingsView: View {
                 } header: {
                     Text("Kernelcache")
                 } footer: {
-                    Text("Deleting and redownloading Kernelcache can fix a lot of issues. Try this before making a github Issue.")
+                    if !showkcachetips {
+                        Text("Deleting and redownloading Kernelcache can fix a lot of issues. Try this before making a github Issue.")
+                    }
+                }
+                
+                if showkcachetips {
+                    Section {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("How to obtain a kernelcache (macOS)")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundColor(.primary)
+                            
+                            Text("1. Download the IPSW tool for your device.")
+                            Link("https://github.com/blacktop/ipsw/releases",
+                                 destination: URL(string: "https://github.com/blacktop/ipsw/releases")!)
+                            
+                            Text("2. Extract the archive.")
+                            Text("3. Open Terminal.")
+                            Text("4. Navigate to the extracted folder:")
+                            Text("cd /path/to/ipsw_3.1.671_something_something/")
+                                .font(.system(.caption2, design: .monospaced))
+                                .textSelection(.enabled)
+                                .foregroundColor(.primary)
+                            
+                            Text("5. Extract the kernel:")
+                            Text("./ipsw extract --kernel [drag your ipsw here]")
+                                .font(.system(.caption2, design: .monospaced))
+                                .textSelection(.enabled)
+                                .foregroundColor(.primary)
+                            
+                            Text("6. Get the kernelcache file.")
+                            Text("7. Transfer the kernelcache to your iCloud or iPhone.")
+                            Text("8. Tap the button above and select the kernelcache, for example kernelcache.release.iPhone14,3.")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 4)
+                    } footer: {
+                        Text("Deleting and redownloading Kernelcache can fix a lot of issues. Try this before making a github Issue.")
+                    }
+                }
+                
+                if isdebugged() {
+                    Section {
+                        Button {
+                            exit(0)
+                        } label: {
+                            Text("Detach")
+                        }
+                        .foregroundColor(.red)
+                    } header: {
+                        Text("Debugger")
+                    } footer: {
+                        Text("Lara does not work when a debugger is attached.")
+                    }
+                }
+                
+                Section {
+                    HStack {
+                        Text("T1SZ_BOOT")
+                        Spacer()
+
+                        TextField("0x19", text: t1szbootbind)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.trailing)
+                            .monospaced()
+                    }
+                } header: {
+                    Text("offsets")
+                } footer: {
+                    Text("Manually save offsets after modifying values like t1sz_boot")
+                }
+                
+                Section {
+                    Button {
+                        saveOffsets()
+                        statusMessage = "Offsets saved!"
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("Save Offsets")
+                            Spacer()
+                        }
+                    }
                 }
                 
                 Section {
@@ -336,7 +419,7 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
         }
-        .fileImporter(isPresented: $showingKernelcacheImporter,
+        .fileImporter(isPresented: $showkcacheimporter,
                       allowedContentTypes: [.data],
                       allowsMultipleSelection: false) { result in
             switch result {
@@ -378,11 +461,58 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 clearkerncachedata()
-                //hasoffsets = haskernproc()
             }
         } message: {
             Text("This will delete the downloaded kernelcache and remove saved offsets.")
         }
+        .alert("Status", isPresented: .constant(statusMessage != nil)) {
+            Button("OK") { statusMessage = nil }
+        } message: {
+            Text(statusMessage ?? "")
+        }
+    }
+    
+    private func clearkerncachedata() {
+        let fm = FileManager.default
+        
+        UserDefaults.standard.removeObject(forKey: "lara.kernelcache_path")
+        UserDefaults.standard.removeObject(forKey: "lara.kernelcache_size")
+        
+        let docsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let kernelcacheDocPath = docsPath.appendingPathComponent("kernelcache")
+        
+        do {
+            if fm.fileExists(atPath: kernelcacheDocPath.path) {
+                try fm.removeItem(at: kernelcacheDocPath)
+                mgr.logmsg("Deleted kernelcache from Documents")
+            }
+        } catch {
+            mgr.logmsg("Failed to delete kernelcache: \(error.localizedDescription)")
+        }
+        
+        let tempPath = NSTemporaryDirectory()
+        let tempFiles = ["kernelcache.release.ipad", "kernelcache.release.iphone", "kernelcache.release.ipad3", "kernelcache.release.iphone14,3"]
+        
+        for file in tempFiles {
+            let path = tempPath + file
+            do {
+                if fm.fileExists(atPath: path) {
+                    try fm.removeItem(atPath: path)
+                    mgr.logmsg("Deleted temp kernelcache: \(file)")
+                }
+            } catch {
+                mgr.logmsg("Failed to delete \(file): \(error.localizedDescription)")
+            }
+        }
+        
+        mgr.logmsg("Kernelcache data cleared")
+        hasoffsets = false
+    }
+    
+    private func saveOffsets() {
+        UserDefaults.standard.set(t1sz_boot, forKey: "lara.t1sz_boot")
+        UserDefaults.standard.synchronize()
+        mgr.logmsg("Saved t1sz_boot: 0x\(String(t1sz_boot, radix: 16))")
     }
 }
 

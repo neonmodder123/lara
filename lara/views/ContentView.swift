@@ -63,6 +63,7 @@ struct ContentView: View {
                         }
                         .disabled(mgr.dsrunning)
                         .disabled(mgr.dsready)
+                        .disabled(isdebugged())
 
                         if mgr.dsready {
                             HStack {
@@ -81,6 +82,15 @@ struct ContentView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
+                        
+                        if isdebugged() {
+                            Button {
+                                exit(0)
+                            } label: {
+                                Text("Detach")
+                            }
+                            .foregroundColor(.red)
+                        }
                     } header: {
                         Text("Kernel Read Write")
                     } footer: {
@@ -92,7 +102,6 @@ struct ContentView: View {
                             Text("Not available while debugger is attached.")
                         }
                     }
-                    .disabled(isdebugged())
 
                     Section {
                         if selectedmethod == .vfs {
@@ -344,6 +353,10 @@ struct ContentView: View {
                                             NavigationLink("Control Center") {
                                                 CCView()
                                             }
+                                            
+                                            NavigationLink("DarkBoard") {
+                                                DarkBoardView()
+                                            }
 
                                             NavigationLink("Passcode Theme") {
                                                 PasscodeView(mgr: mgr)
@@ -394,6 +407,7 @@ struct ContentView: View {
                             }
                         }
                         .disabled(!mgr.dsready || mgr.rcready)
+                        .disabled(isdebugged())
 
                         if mgr.rcready {
                             NavigationLink("Tweaks") {
@@ -404,6 +418,15 @@ struct ContentView: View {
                                 mgr.rcdestroy()
                             }
                         }
+                        
+                        if isdebugged() {
+                            Button {
+                                exit(0)
+                            } label: {
+                                Text("Detach")
+                            }
+                            .foregroundColor(.red)
+                        }
                     } header: {
                         Text("RemoteCall")
                     } footer: {
@@ -412,7 +435,7 @@ struct ContentView: View {
                         }
                         Text("RemoteCall is still in development and may not work properly 100% of the time.")
                     }
-                    .disabled(isdebugged() || mgr.rcrunning)
+                    .disabled(mgr.rcrunning)
                     #endif
 
                     Section {
