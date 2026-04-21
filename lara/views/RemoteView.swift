@@ -19,38 +19,6 @@ struct RemoteView: View {
     var body: some View {
         List {
             Section {
-                NavigationLink("SBCustomizer") {
-                    Section {
-                        Stepper(value: $columns, in: 1...dockMaxColumns) {
-                            HStack {
-                                Text("Dock columns")
-                                Spacer()
-                                Text("\(columns)")
-                                    .foregroundColor(.secondary)
-                                    .monospacedDigit()
-                            }
-                        }
-                        .onChange(of: rcdockunlimited) { _ in
-                            if !rcdockunlimited, columns > 10 {
-                                columns = 10
-                            }
-                        }
-
-                        Button {
-                            run("Apply Dock Columns=\(columns)") {
-                                let result = set_dock_icon_count(mgr.sbProc, Int32(columns))
-                                return "set_dock_icon_count(\(columns)) -> \(result)"
-                            }
-                        } label: {
-                            Text("Apply Dock Columns")
-                        }
-                    }
-                }
-            } header: {
-                Text("Tweaks")
-            }
-            
-            Section {
                 Button {
                     run("Status Bar Time Format") {
                         status_bar_tweak(mgr.sbProc)
@@ -69,7 +37,33 @@ struct RemoteView: View {
                     Text("Hide Icon Labels")
                 }
             } header: {
-                Text("Other")
+                Text("SpringBoard")
+            }
+
+            Section {
+                Stepper(value: $columns, in: 1...dockMaxColumns) {
+                    HStack {
+                        Text("Dock columns")
+                        Spacer()
+                        Text("\(columns)")
+                            .foregroundColor(.secondary)
+                            .monospacedDigit()
+                    }
+                }
+                .onChange(of: rcdockunlimited) { _ in
+                    if !rcdockunlimited, columns > 10 {
+                        columns = 10
+                    }
+                }
+
+                Button {
+                    run("Apply Dock Columns=\(columns)") {
+                        let result = set_dock_icon_count(mgr.sbProc, Int32(columns))
+                        return "set_dock_icon_count(\(columns)) -> \(result)"
+                    }
+                } label: {
+                    Text("Apply Dock Columns")
+                }
             }
 
             Section {
