@@ -41,7 +41,7 @@ currently tested on iOS 17.1 - 26.0.1, up to iOS 18.7.1 only on the 18.7 series.
 | **iOS 18** | 18.0 — 18.7.1 | supported |
 | **iOS 26.0/26.0.1** | 26.0 — 26.0.1 **only** | supported |
 | **iOS 26.1+** | 26.1+ | **patched** |
-| **M-series chips** | M1, M2, M3, etc...  | partially supported. YMMV |
+| **M-series chips** | M1 - M4  | partially supported. YMMV |
 
 > [!CAUTION]
 > if you are on an M-series device, go to lara settings, scroll down set t1sz_boot to `0x11`. if you are on any iOS version higher than 26.0.1 the app will crash on launch. this isn't a bug, lara just doesnt support those devices.
