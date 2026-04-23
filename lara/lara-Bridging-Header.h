@@ -3,6 +3,7 @@
 //  lara
 //
 
+@import UIKit;
 #import <Foundation/Foundation.h>
 
 #import "darksword.h"
