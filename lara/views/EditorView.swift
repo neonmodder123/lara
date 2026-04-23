@@ -280,6 +280,8 @@ struct EditorView: View {
                         cacheExtra.removeObject(forKey: key)
                     }
                 }
+                
+                valid = validate(mg)
             }
         )
     }
