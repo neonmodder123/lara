@@ -104,11 +104,23 @@ struct EditorView: View {
                     // Toggle("Internal stuff", isOn: bindingForInternalStuff())
                     Toggle("Security Research Device", isOn: mgkeybinding(["XYlJKKkj2hztRP1NWWnhlw"]))
                     Toggle("Metal HUD for all apps", isOn: mgkeybinding(["EqrsVvjcYDdxHBiQmGhAWw"]))
-                    Toggle("Stage Manager (iPad Only?)", isOn: mgkeybinding(["qeaj75wk3HF4DwQ8qbIi7g"]))
+                    Toggle("Stage Manager", isOn: mgkeybinding(["qeaj75wk3HF4DwQ8qbIi7g"]))
+                        .disabled(UIDevice.current.userInterfaceIdiom != .pad)
+                    if UIDevice._hasHomeButton() {
+                        Toggle("Tap to Wake (iPhone SE)", isOn: mgkeybinding(["yZf3GTRMGTuwSV/lD7Cagw"]))
+                    }
                 } header: {
                     Text("MobileGestalt")
                 } footer: {
                     Text("Note: some tweaks may not work or cause instability.\nWARNING: Never enable features your device doesn't support.")
+                }
+                Section {
+                    let cacheExtra = mg["CacheExtra"] as? NSMutableDictionary
+                    Toggle("Become iPadOS", isOn: bindingForTrollPad())
+                    // validate DeviceClass
+                        .disabled(cacheExtra?["+3Uf0Pm5F8Xy7Onyvko0vA"] as? String != "iPhone")
+                } footer: {
+                    Text("Override user interface idiom to iPadOS, so you could use all iPadOS multitasking features on iPhone. Gives you the same capabilities as TrollPad, but may cause some issues.\nPLEASE DO NOT TURN OFF SHOW DOCK IN STAGE MANAGER OTHERWISE YOUR PHONE WILL BOOTLOOP WHEN ROTATING TO LANDSCAPE.")
                 }
                 Section {
                     HStack {
@@ -177,6 +189,7 @@ struct EditorView: View {
             .alert("Done", isPresented: .constant(alert != nil)) {
                 Button("Cancel") { alert = nil }
                 Button("Respring") {
+                    alert = nil
                     mgr.respring()
                 }
             } message: {
@@ -233,7 +246,46 @@ struct EditorView: View {
             status = "serialization failed: \(error.localizedDescription)"
         }
     }
-    
+    private func bindingForTrollPad() -> Binding<Bool> {
+        // We're going to overwrite DeviceClassNumber but we can't do it via CacheExtra, so we need to do it via CacheData instead
+        guard let cacheData = mg["CacheData"] as? NSMutableData,
+              let cacheExtra = mg["CacheExtra"] as? NSMutableDictionary else {
+            return State(initialValue: false).projectedValue
+        }
+        let valueOffset = FindCacheDataOffset("mtrAoWJ3gsq+I90ZnQ0vQw")
+        //print("Read value from \(cacheData.mutableBytes.load(fromByteOffset: valueOffset, as: Int.self))")
+        
+        let keys = [
+            "uKc7FPnEO++lVhHWHFlGbQ", // ipad
+            "mG0AnH/Vy1veoqoLRAIgTA", // MedusaFloatingLiveAppCapability
+            "UCG5MkVahJxG1YULbbd5Bg", // MedusaOverlayAppCapability
+            "ZYqko/XM5zD3XBfN5RmaXA", // MedusaPinnedAppCapability
+            "nVh/gwNpy7Jv1NOk00CMrw", // MedusaPIPCapability,
+            "qeaj75wk3HF4DwQ8qbIi7g", // DeviceSupportsEnhancedMultitasking
+        ]
+        return Binding(
+            get: {
+                if let value = cacheExtra[keys.first!] as? Int? {
+                    return value == 1
+                }
+                return false
+            },
+            set: { enabled in
+                cacheData.mutableBytes.storeBytes(of: enabled ? 3 : 1, toByteOffset: valueOffset, as: Int.self)
+                for key in keys {
+                    if enabled {
+                        cacheExtra[key] = 1
+                    } else {
+                        // just remove the key as it will be pulled from device tree if missing
+                        cacheExtra.removeObject(forKey: key)
+                    }
+                }
+                
+                valid = validate(mg)
+            }
+        )
+    }
+
     private func mgkeybinding<T: Equatable>(_ keys: [String], type: T.Type = Int.self, default: T? = 0, enable: T? = 1) -> Binding<Bool> {
         guard let cachextra = mg["CacheExtra"] as? NSMutableDictionary else {
             return State(initialValue: false).projectedValue
