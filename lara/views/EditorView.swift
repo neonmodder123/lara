@@ -120,7 +120,7 @@ struct EditorView: View {
                     // validate DeviceClass
                         .disabled(cacheExtra?["+3Uf0Pm5F8Xy7Onyvko0vA"] as? String != "iPhone")
                 } footer: {
-                    Text("Override user interface idiom to iPadOS, so you could use all iPadOS multitasking features on iPhone. Gives you the same capabilities as TrollPad, but may cause some issues. Please Offload WhatsApp before enabling this. \nPLEASE DO NOT TURN OFF SHOW DOCK IN STAGE MANAGER OTHERWISE YOUR PHONE WILL BOOTLOOP WHEN ROTATING TO LANDSCAPE.")
+                    Text("Override user interface idiom to iPadOS, so you could use all iPadOS multitasking features on iPhone. Gives you the same capabilities as TrollPad, but may cause some issues.\nPLEASE DO NOT TURN OFF SHOW DOCK IN STAGE MANAGER OTHERWISE YOUR PHONE WILL BOOTLOOP WHEN ROTATING TO LANDSCAPE.")
                 }
                 Section {
                     HStack {
@@ -138,7 +138,11 @@ struct EditorView: View {
                                 .foregroundColor(.red)
                         }
                     }
-                    
+                    Button() {
+                        load()
+                    } label: {
+                        Text("Reload from plist")
+                    }
                     Button() {
                         apply()
                     } label: {
@@ -271,6 +275,7 @@ struct EditorView: View {
                 return false
             },
             set: { enabled in
+                status = "Applying changes...\nPlease take note of the following:\n\n1. iOS Only apps, like WhatsApp, can lose data. It's reccomended to offload these apps.\n2. The homescreen layout can get fucked if you have empty space.\n3. If you have an alphabetical password, it's very hard to get into your phone after locking.\n4. Any option with Dock under Stage Manager should NOT be modified.\n\n Only continue if you're okay with this. Else click reload from plist"
                 cacheData.mutableBytes.storeBytes(of: enabled ? 3 : 1, toByteOffset: valueOffset, as: Int.self)
                 for key in keys {
                     if enabled {
