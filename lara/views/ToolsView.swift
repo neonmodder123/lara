@@ -33,6 +33,7 @@ struct ToolsView: View {
     @State private var uid: uid_t = getuid()
     @State private var pid: pid_t = getpid()
     @State private var status: String?
+    @State private var PPRunning: Bool = false
     
     var body: some View {
         List {
@@ -144,15 +145,27 @@ struct ToolsView: View {
 
             Section {
                 Button {
+                    PPRunning = true
                     if mgr.PPHelper() {
                         status = "Succeeded. Open the Pocket Poster app, open settings and tap Detect."
                     } else {
                         status = "Failed. Check logs."
                     }
+                    PPRunning = false
                 } label: {
+                    if PPRunning {
+                        HStack {
+                            ProgressView(value: mgr.vfsprogress)
+                                .progressViewStyle(.circular)
+                                .frame(width: 18, height: 18)
+                            Text("Working...")
+                        }
+                    } else {
+                        Text("Pocket Poster Helper")
+                    }
                     Text("Pocket Poster Helper")
                 }
-                .disabled(!mgr.sbxready)
+                .disabled(!mgr.sbxready || PPRunning)
             } header: {
                 Text("Pocket Poster")
             } footer: {
