@@ -291,7 +291,7 @@ struct RemoteView: View {
             
             Section {
                 Button {
-                    youtube_tweaks(mgr.ytProc)
+                    youtube_tweak(mgr.ytProc)
                 } label: {
                     Text("Generic Youtube Tweaks")
                 }
