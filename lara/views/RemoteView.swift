@@ -136,7 +136,7 @@ struct RemoteView: View {
                         return "enable_floating_dock() -> \(result)"
                     }
                 } label: {
-                    Text("Enable Floating Dock (Broken)")
+                    Text("Enable Floating Dock")
                 }
                 
                 Button {
