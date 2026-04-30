@@ -115,11 +115,11 @@ struct ZeroView: View {
         selecteddata = (try? JSONEncoder().encode(Array(selected))) ?? Data()
     }
 
-    func apply() {
-        for tweak in tweaks where selected.contains(tweak.id) {
-            for path in tweak.path {
-                mgr.vfszeropage(at: path)
-            }
-        }
-    }
-}
+	    func apply() {
+	        for tweak in tweaks where selected.contains(tweak.id) {
+	            for path in tweak.path {
+	                _ = mgr.vfszeropage(at: path, dumb: true)
+	            }
+	        }
+	    }
+	}
