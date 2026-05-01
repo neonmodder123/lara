@@ -511,7 +511,7 @@ struct ContentView: View {
                         Text("RemoteCall")
                     } footer: {
                         if let error = mgr.rcLastError ?? mgr.sbProc?.lastError {
-                            Text("RemoteCall error: \(error)")
+                            Text("Error: \(error)")
                                 .foregroundColor(.red)
                         }
                         if RemoteCall.isLiveContainerRuntime() && !RemoteCall.isLiveProcessRuntime() {

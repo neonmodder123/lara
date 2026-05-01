@@ -9,7 +9,7 @@ import SwiftUI
 import PDFKit
 import UniformTypeIdentifiers
 
-enum ReplaceOption: String, CaseIterable, Identifiable {
+enum replaceoption: String, CaseIterable, Identifiable {
     case photos = "Photos"
     case files = "Files"
     
@@ -18,40 +18,47 @@ enum ReplaceOption: String, CaseIterable, Identifiable {
 
 struct CardView: View {
     @ObservedObject private var mgr = laramgr.shared
-    @State private var cards: [CardItem] = []
+    @State private var cards: [carditem] = []
     @State private var status: String?
     @State private var working = false
     @State private var showimgpicker = false
-    @State private var showDocPicker = false
-    @State private var pendingCard: CardItem?
-    @State private var pickedImageData: Data?
-    @State private var showCardNumberEditor = false
-    @State private var cardNumberInput = ""
-    @State private var currentCardNumber = ""
-    @State private var pendingNumberCard: CardItem?
-    @State private var pendingRestoreCard: CardItem?
+    @State private var showdocpicker = false
+    @State private var pendingcard: carditem?
+    @State private var pickedimgdata: Data?
+    @State private var shownumbereditor = false
+    @State private var cardnuminput = ""
+    @State private var currentcardnum = ""
+    @State private var pendingnumcard: carditem?
+    @State private var pendingrestorecard: carditem?
+    @State private var promptforrespring = false
 
-    private struct CardItem: Identifiable {
+    private static let cardfiles = [
+        "cardBackground@2x.png",
+        "cardBackgroundCombined@2x.png",
+        "cardBackgroundCombined-watch@2x.png"
+    ]
+
+    private struct carditem: Identifiable {
         let id: String
-        let imagePath: String
-        let directoryPath: String
-        let bundleName: String
-        let backgroundFileName: String
+        let imgpath: String
+        let dirpath: String
+        let bundlename: String
+        let bgfilename: String
     }
 
-    private struct CardRowView: View {
-        let card: CardItem
-        let onReplace: (CardItem, ReplaceOption) -> Void
-        let onRestore: (CardItem) -> Void
-        let onEditNumber: (CardItem) -> Void
-        let previewImage: (CardItem) -> UIImage?
+    private struct cardrow: View {
+        let card: carditem
+        let onreplace: (carditem, replaceoption) -> Void
+        let onrestore: (carditem) -> Void
+        let oneditnum: (carditem) -> Void
+        let previewimg: (carditem) -> UIImage?
 
-        @State private var selectedOption: ReplaceOption? = nil
+        @State private var selected: replaceoption? = nil
 
         var body: some View {
-            Section(header: Text(card.backgroundFileName)) {
+            Section(header: Text(card.bgfilename)) {
                 HStack(spacing: 12) {
-                    if let img = previewImage(card) {
+                    if let img = previewimg(card) {
                         Image(uiImage: img)
                             .resizable()
                             .scaledToFit()
@@ -68,10 +75,10 @@ struct CardView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(card.bundleName)
+                        Text(card.bundlename)
                             .font(.headline)
 
-                        Text(card.imagePath)
+                        Text(card.imgpath)
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .lineLimit(2)
@@ -80,26 +87,26 @@ struct CardView: View {
                     Spacer()
                 }
 
-                Picker("Replace", selection: $selectedOption) {
-                    Text("Select…").tag(ReplaceOption?.none)
-                    ForEach(ReplaceOption.allCases) { option in
+                Picker("Replace", selection: $selected) {
+                    Text("Select... ").tag(replaceoption?.none)
+                    ForEach(replaceoption.allCases) { option in
                         Text(option.rawValue).tag(Optional(option))
                     }
                 }
                 .pickerStyle(MenuPickerStyle())
-                .onChange(of: selectedOption) { option in
+                .onChange(of: selected) { option in
                     guard let option = option else { return }
-                    onReplace(card, option)
-                    selectedOption = nil
+                    onreplace(card, option)
+                    selected = nil
                 }
 
                 Button("Restore") {
-                    onRestore(card)
+                    onrestore(card)
                 }
                 .foregroundColor(.red)
 
                 Button("Edit Card Number") {
-                    onEditNumber(card)
+                    oneditnum(card)
                 }
             }
         }
@@ -109,7 +116,7 @@ struct CardView: View {
         List {
             Section {
                 Button {
-                    refreshCards()
+                    refresh()
                 } label: {
                     if working {
                         HStack {
@@ -134,28 +141,28 @@ struct CardView: View {
                 }
             } else {
                 ForEach(cards) { card in
-                    CardRowView(
+                    cardrow(
                         card: card,
-                        onReplace: { card, option in
-                            pendingCard = card
+                        onreplace: { card, option in
+                            pendingcard = card
                             switch option {
                             case .photos:
                                 showimgpicker = true
                             case .files:
-                                showDocPicker = true
+                                showdocpicker = true
                             }
                         },
-                        onRestore: { card in
-                            pendingRestoreCard = card
-                            restoreImage(card: card)
+                        onrestore: { card in
+                            pendingrestorecard = card
+                            restoreimg(card: card)
                         },
-                        onEditNumber: { card in
-                            pendingNumberCard = card
-                            currentCardNumber = readCardNumber(for: card) ?? ""
-                            cardNumberInput = currentCardNumber
-                            showCardNumberEditor = true
+                        oneditnum: { card in
+                            pendingnumcard = card
+                            currentcardnum = readcardnum(for: card) ?? ""
+                            cardnuminput = currentcardnum
+                            shownumbereditor = true
                         },
-                        previewImage: previewImage
+                        previewimg: previewimg
                     )
                 }
 
@@ -194,49 +201,69 @@ struct CardView: View {
             }
         }
         .navigationTitle("Card Overwrite")
-        .alert("Status", isPresented: .constant(status != nil)) {
-            Button("OK") { status = nil }
+        .alert("Status", isPresented: Binding(
+            get: { status != nil },
+            set: { presented in
+                if !presented {
+                    status = nil
+                    promptforrespring = false
+                }
+            }
+        )) {
+            if promptforrespring {
+                Button("Respring") {
+                    status = nil
+                    promptforrespring = false
+                    mgr.respring()
+                }
+                Button("Later", role: .cancel) {
+                    status = nil
+                    promptforrespring = false
+                }
+            } else {
+                Button("OK") { status = nil }
+            }
         } message: {
             Text(status ?? "")
         }
-        .alert("Edit Card Number", isPresented: $showCardNumberEditor) {
-            TextField("Suffix", text: $cardNumberInput)
+        .alert("Edit Card Number", isPresented: $shownumbereditor) {
+            TextField("Suffix", text: $cardnuminput)
             Button("Save") {
-                if let card = pendingNumberCard {
-                    applyCardNumber(card: card, newSuffix: cardNumberInput)
+                if let card = pendingnumcard {
+                    applycardnum(card: card, newsuffix: cardnuminput)
                 }
             }
-            if let card = pendingNumberCard, hasPassJsonBackup(card: card) {
+            if let card = pendingnumcard, haspassjsonbackup(card: card) {
                 Button("Restore Original", role: .destructive) {
-                    restorePassJson(card: card)
+                    restorepassjson(card: card)
                 }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(currentCardNumber.isEmpty ? "Current suffix: (none)" : "Current suffix: \(currentCardNumber)")
+            Text(currentcardnum.isEmpty ? "Current suffix: (none)" : "Current suffix: \(currentcardnum)")
         }
         .sheet(isPresented: $showimgpicker) {
-            ImagePicker(imageData: $pickedImageData)
+            ImagePicker(imageData: $pickedimgdata)
         }
-        .sheet(isPresented: $showDocPicker) {
-            CardImageDocumentPicker(imageData: $pickedImageData)
+        .sheet(isPresented: $showdocpicker) {
+            CardImageDocumentPicker(imgdata: $pickedimgdata)
         }
-        .onChange(of: pickedImageData) { _ in
-            guard let card = pendingCard, let data = pickedImageData else { return }
-            pendingCard = nil
-            pickedImageData = nil
-            applyReplacement(card: card, imageData: data)
+        .onChange(of: pickedimgdata) { _ in
+            guard let card = pendingcard, let data = pickedimgdata else { return }
+            pendingcard = nil
+            pickedimgdata = nil
+            applyreplace(card: card, imgdata: data)
         }
         .onAppear {
-            refreshCards()
+            refresh()
         }
     }
 
-    private func refreshCards() {
+    private func refresh() {
         guard !working else { return }
         working = true
         DispatchQueue.global(qos: .userInitiated).async {
-            let items = scanCards()
+            let items = scancards()
             DispatchQueue.main.async {
                 self.cards = items
                 self.working = false
@@ -244,7 +271,7 @@ struct CardView: View {
         }
     }
 
-    private func scanCards() -> [CardItem] {
+    private func scancards() -> [carditem] {
         let candidates = [
             "/var/mobile/Library/Passes/Cards",
             "/private/var/mobile/Library/Passes/Cards",
@@ -253,64 +280,64 @@ struct CardView: View {
         ]
 
         for root in candidates {
-            let bundles = collectCardBundles(in: root)
+            let bundles = collectcardbundles(in: root)
             if !bundles.isEmpty {
                 return bundles
             }
         }
 
-        let passContainers = ["/var/mobile/Library/Passes", "/private/var/mobile/Library/Passes"]
-        for container in passContainers {
-            let topEntries = listDirectory(container)
-            for primary in ["Cards", "Passes", "Wallet"] where topEntries.contains(primary) {
-                let candidate = joinPath(container, primary)
-                let bundles = collectCardBundles(in: candidate)
+        let passdirs = ["/var/mobile/Library/Passes", "/private/var/mobile/Library/Passes"]
+        for container in passdirs {
+            let topentries = listdir(container)
+            for primary in ["Cards", "Passes", "Wallet"] where topentries.contains(primary) {
+                let candidate = joinpath(container, primary)
+                let bundles = collectcardbundles(in: candidate)
                 if !bundles.isEmpty { return bundles }
-                let nested = joinPath(candidate, "Cards")
-                let nestedBundles = collectCardBundles(in: nested)
-                if !nestedBundles.isEmpty { return nestedBundles }
+                let nested = joinpath(candidate, "Cards")
+                let nestedbundles = collectcardbundles(in: nested)
+                if !nestedbundles.isEmpty { return nestedbundles }
             }
         }
 
         return []
     }
 
-    private func collectCardBundles(in cardsRoot: String) -> [CardItem] {
-        let entries = listDirectory(cardsRoot)
+    private func collectcardbundles(in cardsroot: String) -> [carditem] {
+        let entries = listdir(cardsroot)
         guard !entries.isEmpty else { return [] }
 
-        var bundles: [CardItem] = []
-        var seenDirectories: Set<String> = []
+        var bundles: [carditem] = []
+        var seendirs: Set<String> = []
 
         for entry in entries where entry != "." && entry != ".." {
-            let candidateDirectory = joinPath(cardsRoot, entry)
-            if let backgroundFile = cardBackgroundFile(in: candidateDirectory) {
-                if !seenDirectories.contains(candidateDirectory) {
-                    bundles.append(CardItem(
-                        id: candidateDirectory,
-                        imagePath: joinPath(candidateDirectory, backgroundFile),
-                        directoryPath: candidateDirectory,
-                        bundleName: entry,
-                        backgroundFileName: backgroundFile
+            let candidatedir = joinpath(cardsroot, entry)
+            if let bgfile = cardbgfile(in: candidatedir) {
+                if !seendirs.contains(candidatedir) {
+                    bundles.append(carditem(
+                        id: candidatedir,
+                        imgpath: joinpath(candidatedir, bgfile),
+                        dirpath: candidatedir,
+                        bundlename: entry,
+                        bgfilename: bgfile
                     ))
-                    seenDirectories.insert(candidateDirectory)
+                    seendirs.insert(candidatedir)
                 }
                 continue
             }
 
-            let nestedEntries = listDirectory(candidateDirectory)
-            for nested in nestedEntries where nested != "." && nested != ".." {
-                let nestedDirectory = joinPath(candidateDirectory, nested)
-                if let backgroundFile = cardBackgroundFile(in: nestedDirectory),
-                   !seenDirectories.contains(nestedDirectory) {
-                    bundles.append(CardItem(
-                        id: nestedDirectory,
-                        imagePath: joinPath(nestedDirectory, backgroundFile),
-                        directoryPath: nestedDirectory,
-                        bundleName: "\(entry)/\(nested)",
-                        backgroundFileName: backgroundFile
+            let nestedentries = listdir(candidatedir)
+            for nested in nestedentries where nested != "." && nested != ".." {
+                let nesteddir = joinpath(candidatedir, nested)
+                if let bgfile = cardbgfile(in: nesteddir),
+                   !seendirs.contains(nesteddir) {
+                    bundles.append(carditem(
+                        id: nesteddir,
+                        imgpath: joinpath(nesteddir, bgfile),
+                        dirpath: nesteddir,
+                        bundlename: "\(entry)/\(nested)",
+                        bgfilename: bgfile
                     ))
-                    seenDirectories.insert(nestedDirectory)
+                    seendirs.insert(nesteddir)
                 }
             }
         }
@@ -318,47 +345,31 @@ struct CardView: View {
         return bundles
     }
 
-    private func cardBackgroundFile(in cardDirectory: String) -> String? {
-        let files = listDirectory(cardDirectory)
+    private func cardbgfile(in carddir: String) -> String? {
+        let files = listdir(carddir)
         guard !files.isEmpty else { return nil }
 
-        let preferred = [
-            "cardBackgroundCombined@2x.png",
-            "cardBackgroundCombined@3x.png",
-            "cardBackgroundCombined.png",
-            "cardBackgroundCombined.pdf"
-        ]
-        for name in preferred where files.contains(name) {
+        for name in Self.cardfiles where files.contains(name) {
             return name
         }
-        return files.first { file in
-            let lower = file.lowercased()
-            return lower.hasPrefix("cardbackgroundcombined") && (lower.hasSuffix(".png") || lower.hasSuffix(".pdf"))
-        }
+        return nil
     }
 
-    private func listDirectory(_ path: String) -> [String] {
+    private func listdir(_ path: String) -> [String] {
         let fm = FileManager.default
-        for variant in pathVariants(for: path) {
-            if let direct = try? fm.contentsOfDirectory(atPath: variant) {
-                return direct
-            }
-        }
 
-        guard mgr.vfsready else { return [] }
-        for variant in pathVariants(for: path) {
-            _ = access(variant, F_OK)
-        }
-        for variant in pathVariants(for: path) {
-            if let entries = mgr.vfslistdir(path: variant) {
-                return entries.map { $0.name }
+        for variant in pathvariants(for: path) {
+            do {
+                return try fm.contentsOfDirectory(atPath: variant)
+            } catch {
+                continue
             }
         }
 
         return []
     }
 
-    private func pathVariants(for path: String) -> [String] {
+    private func pathvariants(for path: String) -> [String] {
         var variants: [String] = [path]
         if path.hasPrefix("/private/var/") {
             variants.append(String(path.dropFirst("/private".count)))
@@ -372,23 +383,23 @@ struct CardView: View {
         return unique
     }
 
-    private func joinPath(_ parent: String, _ child: String) -> String {
+    private func joinpath(_ parent: String, _ child: String) -> String {
         if parent.hasSuffix("/") { return parent + child }
         return parent + "/" + child
     }
 
-    private func previewImage(for card: CardItem) -> UIImage? {
-        let lower = card.backgroundFileName.lowercased()
+    private func previewimg(for card: carditem) -> UIImage? {
+        let lower = card.bgfilename.lowercased()
         if lower.hasSuffix(".pdf") {
-            if let doc = PDFDocument(url: URL(fileURLWithPath: card.imagePath)),
+            if let doc = PDFDocument(url: URL(fileURLWithPath: card.imgpath)),
                let page = doc.page(at: 0) {
                 return page.thumbnail(of: CGSize(width: 640, height: 400), for: .cropBox)
             }
-        } else if let img = UIImage(contentsOfFile: card.imagePath) {
+        } else if let img = UIImage(contentsOfFile: card.imgpath) {
             return img
         }
 
-        if mgr.vfsready, let data = mgr.vfsread(path: card.imagePath, maxSize: 8 * 1024 * 1024) {
+        if mgr.vfsready, let data = mgr.vfsread(path: card.imgpath, maxSize: 8 * 1024 * 1024) {
             if lower.hasSuffix(".pdf") {
                 if let doc = PDFDocument(data: data),
                    let page = doc.page(at: 0) {
@@ -401,13 +412,13 @@ struct CardView: View {
         return nil
     }
 
-    private func applyReplacement(card: CardItem, imageData: Data) {
-        guard let image = UIImage(data: imageData) else {
+    private func applyreplace(card: carditem, imgdata: Data) {
+        guard let image = UIImage(data: imgdata) else {
             status = "Invalid image data"
             return
         }
 
-        let lower = card.backgroundFileName.lowercased()
+        let lower = card.bgfilename.lowercased()
         var payload: Data?
         if lower.hasSuffix(".png") {
             payload = image.pngData()
@@ -426,63 +437,65 @@ struct CardView: View {
             return
         }
 
-        backupIfNeeded(card: card)
-        if writePreferSBX(path: card.imagePath, data: data) {
-            clearCache(for: card)
-            status = "Card updated"
+        backupifneeded(card: card)
+        if writeprefersbx(path: card.imgpath, data: data) {
+            clearcache(for: card)
+            promptforrespring = true
+            status = "Card updated. Respring now?"
         } else {
             status = "Failed to overwrite card"
         }
     }
 
-    private func backupIfNeeded(card: CardItem) {
-        let backupPath = card.imagePath + ".backup"
+    private func backupifneeded(card: carditem) {
+        let backuppath = card.imgpath + ".backup"
         let fm = FileManager.default
-        if fm.fileExists(atPath: backupPath) { return }
-        if let data = readPreferSBX(path: card.imagePath, maxSize: 16 * 1024 * 1024) {
-            _ = writePreferSBX(path: backupPath, data: data)
+        if fm.fileExists(atPath: backuppath) { return }
+        if let data = readprefersbx(path: card.imgpath, maxsize: 16 * 1024 * 1024) {
+            _ = writeprefersbx(path: backuppath, data: data)
         }
     }
 
-    private func restoreImage(card: CardItem) {
-        let backupPath = card.imagePath + ".backup"
-        guard FileManager.default.fileExists(atPath: backupPath) else {
+    private func restoreimg(card: carditem) {
+        let backuppath = card.imgpath + ".backup"
+        guard FileManager.default.fileExists(atPath: backuppath) else {
             status = "No backup found"
             return
         }
-        guard let data = readPreferSBX(path: backupPath, maxSize: 16 * 1024 * 1024) else {
+        guard let data = readprefersbx(path: backuppath, maxsize: 16 * 1024 * 1024) else {
             status = "Failed to read backup"
             return
         }
-        if writePreferSBX(path: card.imagePath, data: data) {
-            clearCache(for: card)
-            status = "Restored card image"
+        if writeprefersbx(path: card.imgpath, data: data) {
+            clearcache(for: card)
+            promptforrespring = true
+            status = "Restored card image. Respring now?"
         } else {
             status = "Restore failed"
         }
     }
 
-    private func passJsonPath(for card: CardItem) -> String {
-        card.directoryPath + "/pass.json"
+    private func passjsonpath(for card: carditem) -> String {
+        card.dirpath + "/pass.json"
     }
 
-    private func passJsonBackupPath(for card: CardItem) -> String {
-        card.directoryPath + "/pass.json.backup"
+    private func passjsonbackuppath(for card: carditem) -> String {
+        card.dirpath + "/pass.json.backup"
     }
 
-    private func hasPassJsonBackup(card: CardItem) -> Bool {
-        FileManager.default.fileExists(atPath: passJsonBackupPath(for: card))
+    private func haspassjsonbackup(card: carditem) -> Bool {
+        FileManager.default.fileExists(atPath: passjsonbackuppath(for: card))
     }
 
-    private func readPassJson(for card: CardItem) -> Data? {
-        if let data = readPreferSBX(path: passJsonPath(for: card), maxSize: 512 * 1024) {
+    private func readpassjson(for card: carditem) -> Data? {
+        if let data = readprefersbx(path: passjsonpath(for: card), maxsize: 512 * 1024) {
             return data
         }
         return nil
     }
 
-    private func readCardNumber(for card: CardItem) -> String? {
-        guard let data = readPassJson(for: card),
+    private func readcardnum(for card: carditem) -> String? {
+        guard let data = readpassjson(for: card),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let suffix = json["primaryAccountSuffix"] as? String else {
             return nil
@@ -490,21 +503,21 @@ struct CardView: View {
         return suffix
     }
 
-    private func backupPassJsonIfNeeded(card: CardItem) {
-        let src = passJsonPath(for: card)
-        let backup = passJsonBackupPath(for: card)
+    private func backuppassjsonifneeded(card: carditem) {
+        let src = passjsonpath(for: card)
+        let backup = passjsonbackuppath(for: card)
         guard !FileManager.default.fileExists(atPath: backup) else { return }
-        guard let data = readPreferSBX(path: src, maxSize: 512 * 1024) else { return }
-        _ = writePreferSBX(path: backup, data: data)
+        guard let data = readprefersbx(path: src, maxsize: 512 * 1024) else { return }
+        _ = writeprefersbx(path: backup, data: data)
     }
 
-    private func applyCardNumber(card: CardItem, newSuffix: String) {
-        guard var json = (readPassJson(for: card)).flatMap({ try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }) else {
+    private func applycardnum(card: carditem, newsuffix: String) {
+        guard var json = (readpassjson(for: card)).flatMap({ try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }) else {
             status = "Failed to read pass.json"
             return
         }
-        backupPassJsonIfNeeded(card: card)
-        let trimmed = newSuffix.trimmingCharacters(in: .whitespaces)
+        backuppassjsonifneeded(card: card)
+        let trimmed = newsuffix.trimmingCharacters(in: .whitespaces)
         if trimmed.isEmpty {
             json.removeValue(forKey: "primaryAccountSuffix")
         } else {
@@ -514,60 +527,61 @@ struct CardView: View {
             status = "Failed to encode pass.json"
             return
         }
-        if writePreferSBX(path: passJsonPath(for: card), data: data) {
-            clearCache(for: card)
-            currentCardNumber = trimmed
+        if writeprefersbx(path: passjsonpath(for: card), data: data) {
+            clearcache(for: card)
+            currentcardnum = trimmed
             status = "Card number updated"
         } else {
             status = "Failed to update pass.json"
         }
     }
 
-    private func restorePassJson(card: CardItem) {
-        let backup = passJsonBackupPath(for: card)
+    private func restorepassjson(card: carditem) {
+        let backup = passjsonbackuppath(for: card)
         guard FileManager.default.fileExists(atPath: backup) else {
             status = "No pass.json backup"
             return
         }
-        guard let data = readPreferSBX(path: backup, maxSize: 512 * 1024) else {
+        guard let data = readprefersbx(path: backup, maxsize: 512 * 1024) else {
             status = "Failed to read backup"
             return
         }
-        if writePreferSBX(path: passJsonPath(for: card), data: data) {
-            clearCache(for: card)
-            currentCardNumber = readCardNumber(for: card) ?? ""
+        if writeprefersbx(path: passjsonpath(for: card), data: data) {
+            clearcache(for: card)
+            currentcardnum = readcardnum(for: card) ?? ""
             status = "Restored pass.json"
         } else {
             status = "Failed to restore pass.json"
         }
     }
 
-    private func clearCache(for card: CardItem) {
+    private func clearcache(for card: carditem) {
         let fm = FileManager.default
-        let dir = card.directoryPath
-        let cachePath: String
+        let dir = card.dirpath
+        let cachepath: String
         if dir.lowercased().hasSuffix(".pkpass") {
-            cachePath = dir.replacingOccurrences(of: "pkpass", with: "cache")
+            cachepath = dir.replacingOccurrences(of: "pkpass", with: "cache")
         } else {
-            cachePath = dir + ".cache"
+            cachepath = dir + ".cache"
         }
-        if fm.fileExists(atPath: cachePath) {
-            try? fm.removeItem(atPath: cachePath)
+        if fm.fileExists(atPath: cachepath) {
+            try? fm.removeItem(atPath: cachepath)
         }
     }
 
-    private func readPreferSBX(path: String, maxSize: Int) -> Data? {
+    private func readprefersbx(path: String, maxsize: Int) -> Data? {
         if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
-            return data.count > maxSize ? data.prefix(maxSize) : data
+            return data.count > maxsize ? data.prefix(maxsize) : data
         }
         if mgr.vfsready {
-            return mgr.vfsread(path: path, maxSize: maxSize)
+            return mgr.vfsread(path: path, maxSize: maxsize)
         }
         return nil
     }
 
-    private func writePreferSBX(path: String, data: Data) -> Bool {
+    private func writeprefersbx(path: String, data: Data) -> Bool {
         do {
+            print("(card) writing to \(path)")
             try data.write(to: URL(fileURLWithPath: path), options: .atomic)
             return true
         } catch {
@@ -578,7 +592,7 @@ struct CardView: View {
 }
 
 struct CardImageDocumentPicker: UIViewControllerRepresentable {
-    @Binding var imageData: Data?
+    @Binding var imgdata: Data?
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let types: [UTType] = [.png, .jpeg, .image]
@@ -604,7 +618,7 @@ struct CardImageDocumentPicker: UIViewControllerRepresentable {
             defer { url.stopAccessingSecurityScopedResource() }
 
             if let data = try? Data(contentsOf: url) {
-                parent.imageData = data
+                parent.imgdata = data
             }
         }
 
