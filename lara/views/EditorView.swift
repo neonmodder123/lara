@@ -61,14 +61,19 @@ struct EditorView: View {
         NavigationStack {
             List {
                 Section {
-                    Picker("Dynamic Island", selection: $selectedSubType) {
-                        Text("Original (\(String(ogSubType)))").tag(ogSubType)
-                        ForEach(Array(subtypes.keys), id: \.self) { subtype in
-                            Text(subtypes[subtype] ?? "??").tag(subtype)
-                                .disabled(subtypeDisabled[subtype] ?? true)
+                    HStack {
+                        Text("Dynamic Island")
+                        Spacer()
+                        Menu {
+                            Button("Original (\(String(ogSubType)))") { selectedSubType = ogSubType }
+                            ForEach(subtypes.keys.sorted(), id: \.self) { subtype in
+                                Button(subtypes[subtype] ?? "??") { selectedSubType = subtype }
+                                    .disabled(subtypeDisabled[subtype] ?? true)
+                            }
+                        } label: {
+                            Text(selectedSubType == ogSubType ? "Original (\(String(selectedSubType)))" : (subtypes[selectedSubtype] ?? "??"))
                         }
                     }
-                    .pickerStyle(.menu)
                     Toggle("Action Button", isOn: mgkeybinding(["cT44WE1EohiwRzhsZ8xEsw"]))
                         .disabled(requiresVersion(17))
                     Toggle("Allow installing iPadOS apps", isOn: mgkeybinding(["9MZ5AdH43csAUajl/dU+IQ"], type: [Int].self, default: [1], enable: [1, 2]))
