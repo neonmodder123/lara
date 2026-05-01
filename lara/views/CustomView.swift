@@ -10,37 +10,37 @@ import UniformTypeIdentifiers
 
 struct CustomView: View {
     @ObservedObject var mgr: laramgr
-    @State private var targetPath: String = "/"
-    @State private var showImporter = false
-    @State private var sourcePath: String = ""
-    @State private var sourceName: String = "No file selected"
+    @State private var target: String = "/"
+    @State private var showimport = false
+    @State private var srcpath: String = ""
+    @State private var srcname: String = "No file selected"
     @State private var isoverwriting = false
 
     var body: some View {
         List {
             Section {
-                TextField("/path/to/target", text: $targetPath)
+                TextField("/path/to/target", text: $target)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
 
                 HStack {
                     Text("Source")
                     Spacer()
-                    Text(sourceName)
+                    Text(srcname)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
 
                 Button("Choose Source File") {
-                    showImporter = true
+                    showimport = true
                 }
 
                 Button(isoverwriting ? "Overwriting..." : "Overwrite Target") {
                     guard !isoverwriting else { return }
                     overwrite()
                 }
-                .disabled(!canOverwrite)
+                .disabled(!canoverwrite)
             } header: {
                 Text("Custom Path Overwrite")
             } footer: {
@@ -54,46 +54,46 @@ struct CustomView: View {
         }
         .navigationTitle("Custom Overwrite")
         .fileImporter(
-            isPresented: $showImporter,
+            isPresented: $showimport,
             allowedContentTypes: [.item],
             allowsMultipleSelection: false
         ) { result in
             if case .success(let urls) = result, let url = urls.first {
-                importSource(url)
+                importsource(url)
             }
         }
     }
 
-    private var canOverwrite: Bool {
-        mgr.vfsready && !targetPath.isEmpty && !sourcePath.isEmpty && !isoverwriting
+    private var canoverwrite: Bool {
+        mgr.vfsready && !target.isEmpty && !srcpath.isEmpty && !isoverwriting
     }
 
-    private func importSource(_ url: URL) {
+    private func importsource(_ url: URL) {
         let fm = FileManager.default
-        let tmpDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let dest = tmpDir.appendingPathComponent("vfs_custom_\(UUID().uuidString)")
+        let tmpdir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let dest = tmpdir.appendingPathComponent("customwrite-\(UUID().uuidString)")
 
         do {
             if fm.fileExists(atPath: dest.path) {
                 try fm.removeItem(at: dest)
             }
             try fm.copyItem(at: url, to: dest)
-            sourcePath = dest.path
-            sourceName = url.lastPathComponent
-            mgr.logmsg("selected source: \(sourceName)")
+            srcpath = dest.path
+            srcname = url.lastPathComponent
+            mgr.logmsg("selected source: \(srcname)")
         } catch {
             mgr.logmsg("failed to import source: \(error.localizedDescription)")
         }
     }
 
     private func overwrite() {
-        guard canOverwrite else { return }
+        guard canoverwrite else { return }
         isoverwriting = true
         DispatchQueue.global(qos: .userInitiated).async {
-            let ok = mgr.vfsoverwritefromlocalpath(target: targetPath, source: sourcePath)
+            let ok = mgr.vfsoverwritefromlocalpath(target: target, source: srcpath)
             DispatchQueue.main.async {
                 isoverwriting = false
-                ok ? mgr.logmsg("overwrite ok: \(targetPath)") : mgr.logmsg("overwrite failed: \(targetPath)")
+                ok ? mgr.logmsg("overwrite ok: \(target)") : mgr.logmsg("overwrite failed: \(target)")
             }
         }
     }

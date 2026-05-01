@@ -18,15 +18,15 @@ struct proc: Identifiable {
 struct JitView: View {
     @ObservedObject private var mgr = laramgr.shared
     @State private var query = ""
-    @State private var allProcesses: [proc] = []
-    @State private var enablingBundleID: String? = nil
+    @State private var allprocs: [proc] = []
+    @State private var enablingbid: String? = nil
 
-    private var filteredProcesses: [proc] {
+    private var filteredprocs: [proc] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return allProcesses }
+        if trimmed.isEmpty { return allprocs }
 
         let q = trimmed.lowercased()
-        return allProcesses.filter { process in
+        return allprocs.filter { process in
             process.name.lowercased().contains(q) || process.bundle.lowercased().contains(q)
         }
     }
@@ -57,11 +57,11 @@ struct JitView: View {
                 }
 
                 Section {
-                    if filteredProcesses.isEmpty {
+                    if filteredprocs.isEmpty {
                         Text(query.isEmpty ? "No apps found." : "No matches.")
                             .foregroundColor(.secondary)
                     } else {
-                        ForEach(filteredProcesses) { proc in
+                        ForEach(filteredprocs) { proc in
                             HStack {
                                 if let icon = proc.icon {
                                     Image(uiImage: icon)
@@ -86,18 +86,20 @@ struct JitView: View {
                                 Spacer()
 
                                 Button {
-                                    enableJIT(bundleID: proc.bundle)
+                                    enablejit(bundleID: proc.bundle)
                                 } label: {
-                                    if enablingBundleID == proc.bundle {
+                                    if enablingbid == proc.bundle {
                                         ProgressView()
                                     } else {
                                         Text("Enable")
                                     }
                                 }
-                                .disabled(enablingBundleID != nil || !mgr.dsready)
+                                .disabled(enablingbid != nil || !mgr.dsready)
                             }
                         }
                     }
+                } footer: {
+                    Text("Only works on apps with the `get-task-allow` entitlement.")
                 }
             }
             .navigationTitle("LaraJIT")
@@ -106,14 +108,14 @@ struct JitView: View {
             if mgr.sbxready {
                 loadprocs()
             } else {
-                allProcesses.removeAll()
+                allprocs.removeAll()
             }
         }
         .onChange(of: mgr.sbxready) { ready in
             if ready {
                 loadprocs()
             } else {
-                allProcesses.removeAll()
+                allprocs.removeAll()
             }
         }
     }
@@ -121,7 +123,7 @@ struct JitView: View {
     func loadprocs() {
         guard mgr.sbxready else {
             DispatchQueue.main.async {
-                allProcesses.removeAll()
+                allprocs.removeAll()
             }
             return
         }
@@ -158,25 +160,25 @@ struct JitView: View {
             apps.sort { $0.name.lowercased() < $1.name.lowercased() }
 
             DispatchQueue.main.async {
-                allProcesses = apps
+                allprocs = apps
             }
         }
     }
 
-    private func enableJIT(bundleID: String) {
-        guard enablingBundleID == nil else { return }
+    private func enablejit(bundleID: String) {
+        guard enablingbid == nil else { return }
         guard mgr.dsready else {
 	            globallogger.log("kernel r/w not ready")
 	            return
 	        }
 
-	        enablingBundleID = bundleID
+	        enablingbid = bundleID
 	        globallogger.log("(jit) enabling for \(bundleID)...")
 
-	        let runEnable: () -> Void = {
+	        let runenable: () -> Void = {
 				guard let sbProc = mgr.sbProc else {
 					globallogger.log("(jit) error: sbProc is nil")
-					DispatchQueue.main.async { enablingBundleID = nil }
+					DispatchQueue.main.async { enablingbid = nil }
 					return
 				}
 
@@ -191,20 +193,20 @@ struct JitView: View {
 						} else {
 							globallogger.log("(jit) error enabling for \(bundleID)!")
 						}
-						enablingBundleID = nil
+						enablingbid = nil
 					}
 				}
 			}
 
 	        if mgr.rcrunning {
-	            runEnable()
+	            runenable()
 	        } else {
 	            mgr.rcinit(process: "SpringBoard", migbypass: false) { success in
 	                if success {
-	                    runEnable()
+	                    runenable()
 	                } else {
 	                    globallogger.log("(jit) rcinit failed")
-	                    enablingBundleID = nil
+	                    enablingbid = nil
 	                }
 	            }
         }

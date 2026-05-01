@@ -139,7 +139,7 @@ struct ToolsView: View {
             } header: {
                 Text("JIT")
             } footer: {
-                Text("Currently broken.")
+                Text("Only works on apps with the `get-task-allow` entitlement.")
             }
 
             Section {

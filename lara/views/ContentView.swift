@@ -258,14 +258,18 @@ struct ContentView: View {
                                                     Label("File Manager", systemImage: "folder")
                                                 }
                                             }
+                                        } header: {
+                                            Text("Filesystem")
+                                        }
 
+                                        Section {
                                             NavigationLink {
                                                 VarCleanView()
                                             } label: {
                                                 Label("VarClean", systemImage: "sparkles")
                                             }
                                         } header: {
-                                            Text("Other")
+                                            Text("Cleanup")
                                         }
 
                                         if 1 == 2 {
@@ -391,7 +395,16 @@ struct ContentView: View {
                                                 }
                                             }
                                         } header: {
-                                            Text("UI Tweaks")
+                                            Text("SpringBoard")
+                                        }
+                                        Section {
+                                            NavigationLink() {
+                                                PasscodeView(mgr: mgr)
+                                            } label: {
+                                                Label("Passcode Theme", systemImage: "key")
+                                            }
+                                        } header: {
+                                            Text("Lockscreen")
                                         }
                                         Section {
                                             NavigationLink {
@@ -427,23 +440,23 @@ struct ContentView: View {
                                             } label: {
                                                 Label("MobileGestalt", systemImage: "gear")
                                             }
+                                        } header: {
+                                            Text("Filesystem")
+                                        }
 
+                                        Section {
                                             NavigationLink {
                                                 VarCleanView()
                                             } label: {
                                                 Label("VarClean", systemImage: "sparkles")
                                             }
                                         } header: {
-                                            Text("Other")
+                                            Text("Cleanup")
                                         }
 
                                         if 1 == 2 {
                                             NavigationLink("Control Center") {
                                                 CCView()
-                                            }
-
-                                            NavigationLink("Passcode Theme") {
-                                                PasscodeView(mgr: mgr)
                                             }
                                         }
                                     }

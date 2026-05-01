@@ -7,68 +7,68 @@
 
 import SwiftUI
 
-private struct VarCleanMatch: Identifiable, Hashable {
+private struct varcleanmatch: Identifiable, Hashable {
     let path: String
     let name: String
-    let isDirectory: Bool
-    let isSymlink: Bool
-    var isSelected: Bool
+    let isdir: Bool
+    let issymlink: Bool
+    var isselected: Bool
 
     var id: String { path }
 }
 
-private struct VarCleanGroup: Identifiable, Hashable {
+private struct varcleangroup: Identifiable, Hashable {
     let path: String
-    var items: [VarCleanMatch]
+    var items: [varcleanmatch]
 
     var id: String { path }
 }
 
 struct VarCleanView: View {
     @ObservedObject private var mgr = laramgr.shared
-    @State private var groups: [VarCleanGroup] = []
-    @State private var isRefreshing = false
-    @State private var isDeleting = false
-    @State private var statusMessage: String?
-    @State private var showDeleteConfirmation = false
+    @State private var groups: [varcleangroup] = []
+    @State private var isrefreshing = false
+    @State private var isdeleting = false
+    @State private var statusmsg: String?
+    @State private var showdeleteconfirm = false
 
-    private var cleanupAvailable: Bool { mgr.sbxready }
+    private var cleanupok: Bool { mgr.sbxready }
 
-    private var selectedCount: Int {
-        groups.reduce(0) { $0 + $1.items.filter(\.isSelected).count }
+    private var selectedcount: Int {
+        groups.reduce(0) { $0 + $1.items.filter(\.isselected).count }
     }
 
     var body: some View {
         List {
             Section("Status") {
-                Text(cleanupAvailable
+                Text(cleanupok
                      ? "Cleanup enabled via sandbox escape."
                      : "Detection only. Escape the sandbox to delete matched paths.")
                     .foregroundColor(.secondary)
 
-                if let statusMessage, !statusMessage.isEmpty {
-                    Text(statusMessage)
+                if let statusmsg, !statusmsg.isEmpty {
+                    Text(statusmsg)
                         .foregroundColor(.secondary)
                         .font(.footnote)
                 }
             }
 
-            if groups.isEmpty && !isRefreshing {
+            if groups.isEmpty && !isrefreshing {
                 Section("Matches") {
                     Text("No blacklisted residue from VarCleanRules.json was found.")
                         .foregroundColor(.secondary)
                 }
             } else {
-                ForEach(groups.indices, id: \.self) { groupIndex in
-                    Section(groups[groupIndex].path) {
-                        ForEach(groups[groupIndex].items.indices, id: \.self) { itemIndex in
-                            let item = groups[groupIndex].items[itemIndex]
+                ForEach(groups.indices, id: \.self) { groupidx in
+                    Section(groups[groupidx].path) {
+                        ForEach(groups[groupidx].items.indices, id: \.self) { itemidx in
+                            let item = groups[groupidx].items[itemidx]
                             Button {
-                                guard cleanupAvailable else { return }
-                                groups[groupIndex].items[itemIndex].isSelected.toggle()
+                                guard cleanupok else { return }
+                                groups[groupidx].items[itemidx].isselected.toggle()
                             } label: {
                                 HStack(spacing: 12) {
-                                    Text(item.isSymlink ? "🔗" : (item.isDirectory ? "🗂️" : "📄"))
+                                    Text(item.issymlink ? "🔗" : (item.isdir ? "🗂️" : "📄"))
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(item.name)
                                             .foregroundColor(.primary)
@@ -78,14 +78,14 @@ struct VarCleanView: View {
                                             .lineLimit(2)
                                     }
                                     Spacer()
-                                    if cleanupAvailable {
-                                        Image(systemName: item.isSelected ? "checkmark.circle.fill" : "circle")
-                                            .foregroundColor(item.isSelected ? .red : .secondary)
+                                    if cleanupok {
+                                        Image(systemName: item.isselected ? "checkmark.circle.fill" : "circle")
+                                            .foregroundColor(item.isselected ? .red : .secondary)
                                     }
                                 }
                             }
                             .buttonStyle(.plain)
-                            .disabled(!cleanupAvailable)
+                            .disabled(!cleanupok)
                         }
                     }
                 }
@@ -97,193 +97,193 @@ struct VarCleanView: View {
                 Button {
                     Task { await refresh() }
                 } label: {
-                    if isRefreshing {
+                    if isrefreshing {
                         ProgressView()
                     } else {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
-                .disabled(isRefreshing || isDeleting)
+                .disabled(isrefreshing || isdeleting)
 
-                Button(selectedCount == 0 ? "Select All" : "Clear") {
-                    toggleSelection()
+                Button(selectedcount == 0 ? "Select All" : "Clear") {
+                    toggleselection()
                 }
-                .disabled(!cleanupAvailable || groups.isEmpty || isDeleting)
+                .disabled(!cleanupok || groups.isEmpty || isdeleting)
 
                 Button("Clean") {
-                    showDeleteConfirmation = true
+                    showdeleteconfirm = true
                 }
-                .disabled(!cleanupAvailable || selectedCount == 0 || isDeleting)
+                .disabled(!cleanupok || selectedcount == 0 || isdeleting)
             }
         }
         .task {
             await refresh()
         }
-        .alert("Delete Selected Items?", isPresented: $showDeleteConfirmation) {
+        .alert("Delete Selected Items?", isPresented: $showdeleteconfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
-                Task { await deleteSelected() }
+                Task { await deleteselected() }
             }
         } message: {
-            Text("Delete \(selectedCount) matched path\(selectedCount == 1 ? "" : "s")?")
+            Text("Delete \(selectedcount) matched path\(selectedcount == 1 ? "" : "s")?")
         }
     }
 
-    private func toggleSelection() {
-        let shouldSelect = selectedCount == 0
-        for groupIndex in groups.indices {
-            for itemIndex in groups[groupIndex].items.indices {
-                groups[groupIndex].items[itemIndex].isSelected = shouldSelect
+    private func toggleselection() {
+        let shouldselect = selectedcount == 0
+        for groupidx in groups.indices {
+            for itemidx in groups[groupidx].items.indices {
+                groups[groupidx].items[itemidx].isselected = shouldselect
             }
         }
     }
 
     @MainActor
     private func refresh() async {
-        guard !isRefreshing else { return }
-        isRefreshing = true
-        defer { isRefreshing = false }
+        guard !isrefreshing else { return }
+        isrefreshing = true
+        defer { isrefreshing = false }
 
-        let newGroups = await Task.detached(priority: .userInitiated) {
-            loadVarCleanGroups()
+        let newgroups = await Task.detached(priority: .userInitiated) {
+            loadvarcleangroups()
         }.value
 
-        groups = newGroups
+        groups = newgroups
         if groups.isEmpty {
-            statusMessage = nil
+            statusmsg = nil
         } else {
-            let matchCount = groups.reduce(0) { $0 + $1.items.count }
-            statusMessage = "Found \(matchCount) matched path\(matchCount == 1 ? "" : "s")."
+            let matchcount = groups.reduce(0) { $0 + $1.items.count }
+            statusmsg = "Found \(matchcount) matched path\(matchcount == 1 ? "" : "s")."
         }
     }
 
     @MainActor
-    private func deleteSelected() async {
-        guard cleanupAvailable else { return }
-        isDeleting = true
-        defer { isDeleting = false }
+    private func deleteselected() async {
+        guard cleanupok else { return }
+        isdeleting = true
+        defer { isdeleting = false }
 
-        let selectedPaths = groups
+        let selectedpaths = groups
             .flatMap(\.items)
-            .filter(\.isSelected)
+            .filter(\.isselected)
             .map(\.path)
             .sorted { $0.count > $1.count }
 
-        var deletedCount = 0
+        var deletedcount = 0
         var failures: [String] = []
-        let fileManager = FileManager.default
+        let filemgr = FileManager.default
 
-        for path in selectedPaths {
+        for path in selectedpaths {
             do {
-                if fileManager.fileExists(atPath: path) {
-                    try fileManager.removeItem(atPath: path)
+                if filemgr.fileExists(atPath: path) {
+                    try filemgr.removeItem(atPath: path)
                 }
-                deletedCount += 1
+                deletedcount += 1
             } catch {
                 failures.append("\(path): \(error.localizedDescription)")
             }
         }
 
         if failures.isEmpty {
-            statusMessage = "Deleted \(deletedCount) path\(deletedCount == 1 ? "" : "s")."
+            statusmsg = "Deleted \(deletedcount) path\(deletedcount == 1 ? "" : "s")."
         } else {
-            statusMessage = "Deleted \(deletedCount) path\(deletedCount == 1 ? "" : "s"), failed \(failures.count)."
+            statusmsg = "Deleted \(deletedcount) path\(deletedcount == 1 ? "" : "s"), failed \(failures.count)."
         }
 
         await refresh()
     }
 }
 
-private func loadVarCleanGroups() -> [VarCleanGroup] {
+private func loadvarcleangroups() -> [varcleangroup] {
     var error: NSError?
     guard let rules = VarCleanBridge.loadRulesNamed("VarCleanRules", in: .main, error: &error) as? [String: Any] else {
         return []
     }
 
-    var grouped: [String: [VarCleanMatch]] = [:]
-    var seenPaths = Set<String>()
-    var directoryEntriesCache: [String: [String]] = [:]
-    let sortedRulePaths = rules.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    var grouped: [String: [varcleanmatch]] = [:]
+    var seenpaths = Set<String>()
+    var direntriescache: [String: [String]] = [:]
+    let sortedrulepaths = rules.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
 
-    for basePath in sortedRulePaths {
-        guard let rule = rules[basePath] as? [String: Any],
+    for basepath in sortedrulepaths {
+        guard let rule = rules[basepath] as? [String: Any],
               let blacklist = rule["blacklist"] as? [Any] else {
             continue
         }
 
-        for probePath in probePaths(
-            for: basePath,
+        for probepath in probepaths(
+            for: basepath,
             blacklist: blacklist,
-            seenPaths: &seenPaths,
-            directoryEntriesCache: &directoryEntriesCache
+            seenpaths: &seenpaths,
+            direntriescache: &direntriescache
         ) {
-            var isDirectory = ObjCBool(false)
-            var isSymlink = ObjCBool(false)
-            guard VarCleanBridge.probePathExists(probePath, isDirectory: &isDirectory, isSymlink: &isSymlink) else {
+            var isdir = ObjCBool(false)
+            var issymlink = ObjCBool(false)
+            guard VarCleanBridge.probePathExists(probepath, isDirectory: &isdir, isSymlink: &issymlink) else {
                 continue
             }
 
-            let groupPath = (probePath as NSString).deletingLastPathComponent.isEmpty
+            let grouppath = (probepath as NSString).deletingLastPathComponent.isEmpty
                 ? "/"
-                : (probePath as NSString).deletingLastPathComponent
+                : (probepath as NSString).deletingLastPathComponent
 
-            let match = VarCleanMatch(
-                path: probePath,
-                name: (probePath as NSString).lastPathComponent,
-                isDirectory: isDirectory.boolValue,
-                isSymlink: isSymlink.boolValue,
-                isSelected: false
+            let match = varcleanmatch(
+                path: probepath,
+                name: (probepath as NSString).lastPathComponent,
+                isdir: isdir.boolValue,
+                issymlink: issymlink.boolValue,
+                isselected: false
             )
-            grouped[groupPath, default: []].append(match)
+            grouped[grouppath, default: []].append(match)
         }
     }
 
-    let sortedGroups = grouped.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
-    return sortedGroups.map { groupPath in
-        let items = (grouped[groupPath] ?? [])
+    let sortedgroups = grouped.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    return sortedgroups.map { grouppath in
+        let items = (grouped[grouppath] ?? [])
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        return VarCleanGroup(path: groupPath, items: items)
+        return varcleangroup(path: grouppath, items: items)
     }
 }
 
-private func probePaths(
-    for basePath: String,
+private func probepaths(
+    for basepath: String,
     blacklist: [Any],
-    seenPaths: inout Set<String>,
-    directoryEntriesCache: inout [String: [String]]
+    seenpaths: inout Set<String>,
+    direntriescache: inout [String: [String]]
 ) -> [String] {
-    var probePaths: [String] = []
+    var out: [String] = []
 
     for entry in blacklist {
         if let name = entry as? String, !name.isEmpty {
-            let probePath = (basePath as NSString).appendingPathComponent(name)
-            if seenPaths.insert(probePath).inserted {
-                probePaths.append(probePath)
+            let probepath = (basepath as NSString).appendingPathComponent(name)
+            if seenpaths.insert(probepath).inserted {
+                out.append(probepath)
             }
             continue
         }
 
         guard let condition = entry as? [String: Any],
-              let match = condition["match"] as? String,
-              match == "regexp",
+              let matchtype = condition["match"] as? String,
+              matchtype == "regexp",
               let pattern = condition["name"] as? String,
               let regex = try? NSRegularExpression(pattern: pattern) else {
             continue
         }
 
-        let entries = directoryEntries(atPath: basePath, cache: &directoryEntriesCache)
+        let entries = direntries(atpath: basepath, cache: &direntriescache)
         for name in entries where regex.firstMatch(in: name, range: NSRange(name.startIndex..., in: name)) != nil {
-            let probePath = (basePath as NSString).appendingPathComponent(name)
-            if seenPaths.insert(probePath).inserted {
-                probePaths.append(probePath)
+            let probepath = (basepath as NSString).appendingPathComponent(name)
+            if seenpaths.insert(probepath).inserted {
+                out.append(probepath)
             }
         }
     }
 
-    return probePaths
+    return out
 }
 
-private func directoryEntries(atPath path: String, cache: inout [String: [String]]) -> [String] {
+private func direntries(atpath path: String, cache: inout [String: [String]]) -> [String] {
     if let cached = cache[path] {
         return cached
     }
