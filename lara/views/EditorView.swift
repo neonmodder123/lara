@@ -22,7 +22,7 @@ struct EditorView: View {
     private let path = "/var/containers/Shared/SystemGroup/systemgroup.com.apple.mobilegestaltcache/Library/Caches/com.apple.MobileGestalt.plist"
     private let ogmgurl: URL
     let os = ProcessInfo().operatingSystemVersion
-    let subtypes = [2556, 2796, 2976, 2622, 2868, 2436]
+    var subtypes = [2556, 2796, 2976, 2622, 2868, 2436]
     var subtypeNames = [2556: "14 Pro (2556)", 2796: "14 Pro Max (2796)", 2976: "15 Pro Max (2976)", 2622: "16 Pro (2622)", 2868: "16 Pro Max (2868)", 2436: "X Gestures (2436)"]
     var subtypeDisabled: [Int: Bool] = [:]
 
@@ -72,7 +72,7 @@ struct EditorView: View {
                                     .disabled(subtypeDisabled[subtype] ?? true)
                             }
                         } label: {
-                            Text(selectedSubType == ogSubType ? "Original (\(String(selectedSubType)))" : (subtypes[selectedSubType] ?? "??"))
+                            Text(selectedSubType == ogSubType ? "Original (\(String(selectedSubType)))" :  String((subtypes[selectedSubType]) ?? "??"))
                         }
                     }
                     Toggle("Action Button", isOn: mgkeybinding(["cT44WE1EohiwRzhsZ8xEsw"]))
