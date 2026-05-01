@@ -54,7 +54,8 @@ struct EditorView: View {
         if ogSubType == -1 {
             ogSubType = subType
         }
-        subtypes.removeAll { $0 == ogSubType }
+        let originalSubType = ogSubType
+        subtypes.removeAll { $0 == originalSubType }
         subtypeDisabled = [2556: requiresVersion(16), 2796: requiresVersion(16), 2976: requiresVersion(17), 2622: requiresVersion(18), 2868: requiresVersion(18), 2436: !UIDevice._hasHomeButton()]
     }
 
