@@ -83,12 +83,8 @@ Important Notes:
 
 ## Known Issues
 - wont work on M5, A19 and A19 Pro due to MTE
-- on iOS 17.x, the kernel may panic when lara is closed from the app switcher.
-- downloading OTA updates does not work.
+- the kernel may panic when lara is closed from the app switcher.
 - dirtyzero does not work.
-- ui is buggy on 17.x
-- .aea ota updates do not work.
-- A16+ and M-series devices dont support RemoteCall (yet)
 - apps don't detect JIT enabled however they are enabled.
 - remotecall is super bugged and may not work properly.
 
